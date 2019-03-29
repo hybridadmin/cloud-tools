@@ -1,0 +1,9 @@
+module hyperv-daemons 1.0;  
+require {
+type hypervkvp_t;
+type device_t;
+type hypervvssd_t; 
+class chr_file { read write open };
+}
+allow hypervkvp_t device_t:chr_file { read write open };
+allow hypervvssd_t device_t:chr_file { read write open };
