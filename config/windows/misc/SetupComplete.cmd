@@ -34,7 +34,7 @@ cmd /c w32tm /config /manualpeerlist:"za.pool.ntp.org" /syncfromflags:MANUAL
 cmd /c net stop W32Time
 cmd /c net start W32Time
 cmd /c w32tm /query /peers
-cscript /b c:\windows\system32\slmgr.vbs /skms kms.wa.co.za
+cscript /b c:\windows\system32\slmgr.vbs /skms KMS_HOST_SERVER
 cscript /b c:\windows\system32\slmgr.vbs -ato
 ::cmd /c reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverride /t REG_DWORD /d 0 /f
 ::cmd /c reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f
