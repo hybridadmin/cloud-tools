@@ -7,3 +7,4 @@ class chr_file { read write open };
 }
 allow hypervkvp_t device_t:chr_file { read write open };
 allow hypervvssd_t device_t:chr_file { read write open };
+allow ifconfig_t device_t:chr_file { read write open };
