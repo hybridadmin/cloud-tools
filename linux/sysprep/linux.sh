@@ -6,6 +6,11 @@
 
 # https://github.com/szarkos/AzureBuildCentOS/blob/master/ks/azure/centos71-hpc.ks
 
+# Disk partitions
+# 256 /boot
+# 256 EFI ESP
+# Rest = /
+
 ## Fix for Centos 7/8 - [[ $RELEASE =~ ^[7-8]{1}$ ]]
 
 CURRENT_SCRIPT="$0"
@@ -15,7 +20,6 @@ COUNTRY_CODE=$(curl -s "http://api.ipapi.com/check?access_key=d6c224f073f8cbe9de
 ADD_POWERSHELL_DSC="false"
 HOLD_KERNEL_UPDATES="false"
 PREP_FOR_AZURE="false"
-CONFIG_TIMESOURCE="true"
 BLACKLIST_MODULES="false"
 CLOUD_PART_TOOLS="false"
 ALLOWED_SOURCES=("196.220.32.0/24" "41.185.11.0/24")
@@ -34,15 +38,15 @@ function configure_ntp (){
 	
 	if [ $DISTRO == "centos" ]; then 
 		C_RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)
+        NTP_SERVICE="ntpd"
 	else
 		U_RELEASE=$(lsb_release -rs | cut -d '.' -f 1)
+        NTP_SERVICE="ntp"
 	fi
 	
 	cp ${NTP_CONFIG} "${NTP_CONFIG}.orig"
-	sed -i "s/0.${DISTRO}.pool.ntp.org/0.za.pool.ntp.org/g" ${NTP_CONFIG}
-	sed -i "s/1.${DISTRO}.pool.ntp.org/1.africa.pool.ntp.org/g" ${NTP_CONFIG}
-	sed -i "s/2.${DISTRO}.pool.ntp.org/2.africa.pool.ntp.org/g" ${NTP_CONFIG}
-	sed -i "s/3.${DISTRO}.pool.ntp.org/3.africa.pool.ntp.org/g" ${NTP_CONFIG}
+	sed -i "s/0.${DISTRO}.pool.ntp.org/za.pool.ntp.org/g" ${NTP_CONFIG}
+    sed -i "/[0-9].${DISTRO}.pool.ntp.org/d" ${NTP_CONFIG}
 	
 	if [[ $NTP_CONFIG =~ "chrony" ]]; then
 		systemctl enable chronyd && systemctl enable chronyd
@@ -52,7 +56,7 @@ function configure_ntp (){
 			if [ $C_RELEASE == '6' ]; then chkconfig ntpd on; fi 			
 			service ntpd start && service ntpd status
 		else
-			systemctl enable ntpd.service && systemctl start ntpd.service && systemctl status ntpd.service
+			systemctl enable $NTP_SERVICE && systemctl start $NTP_SERVICE && systemctl status $NTP_SERVICE
 		fi
 		ntpq -cpe -cas
 	fi
@@ -186,29 +190,20 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	fi
 
 	## Config Timesource ## 
-	if [ $CONFIG_TIMESOURCE == 'false' ]; then 
-		write-log "green" ">>> Skipping Timesource configuration <<<"
-	else		
-		if which chronyd >/dev/null; then
-			write-log "bright_blue" ">>> Chrony service installed <<<"
-			TIME_CONF="/etc/chrony.conf"
-		else
-			TIME_CONF="/etc/ntp.conf"
-			if $PKG_INSTALLER list installed | grep -P "(ntp.x86)" >/dev/null 2>&1; then
-				write-log "green" ">>> NTP service already installed <<<"
-			else
-				write-log "bright_blue" ">>> Installing NTP service <<<"
-				sudo $PKG_INSTALLER install -y -q ntp
-			fi		
-		fi
-		
-		if cat "${TIME_CONF}" | grep "centos|redhat" >/dev/null 2>&1; then
-			write-log "bright_blue" ">>> Configuring NTP service <<<"		
-			configure_ntp "${TIME_CONF}" "${DISTRO}"
-		else
-			write-log "green" ">>> NTP service already configured <<<"
-		fi 
+	if $PKG_INSTALLER list installed | grep -P "(ntp\..*64)" >/dev/null 2>&1; then
+		write-log "bright_blue" ">>> ntp service installed <<<"
+	else			
+		write-log "bright_blue" ">>> Installing NTP service <<<"
+		sudo $PKG_INSTALLER install -y -q ntp
 	fi
+	
+    TIME_CONF="/etc/ntp.conf"
+	if cat "${TIME_CONF}" | grep "centos|redhat" >/dev/null 2>&1; then
+		write-log "bright_blue" ">>> Configuring NTP service <<<"		
+		configure_ntp "${TIME_CONF}" "${DISTRO}"
+	else
+		write-log "green" ">>> NTP service already configured <<<"
+	fi 
 
 	if  cat /etc/sysconfig/network-scripts/ifcfg-eth0 | grep -P "HWADDR|UUID|IPV6|PROXY|BROWSER" >/dev/null 2>&1 ; then
 		write-log "bright_blue" ">>> Removing HWADDR|UUID|IPV6|PROXY|BROWSER settings from eth0 config file <<<"
@@ -267,7 +262,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	fi
 	
 	## Regular firewall rules
-	if iptables -L INPUT | grep -P "ssh|icmp|ntp" >/dev/null 2>&1; then
+	if [ `iptables -L | grep -e "ACC.*" | grep -P "ssh|ntp|icmp"  | wc -l` -ge 4 ]; then
 		write-log "green" ">>> ssh|icmp|ntp rules already open in firewall <<<"
 	else
 		write-log "bright_blue" ">>> Applying ssh|icmp|ntp firewall rules <<<"
@@ -543,7 +538,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		fi
 	fi	
 
-	if iptables -L INPUT | grep -P "ssh|icmp|ntp" >/dev/null 2>&1; then 	
+	if [ `iptables -L | grep -e "ACC.*" | grep -P "ssh|ntp|icmp"  | wc -l` -ge 4 ]; then 	
 		write-log "green" ">>> ssh|icmp|ntp rules already open in firewall <<<"
 	else
 		#http://dev-notes.eu/2016/08/persistent-iptables-rules-in-ubuntu-16-04-xenial-xerus/
@@ -558,29 +553,25 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 
 	#if cat /etc/ntp.conf | grep "0.ubuntu.pool.ntp.org" >/dev/null 2>&1; then
 	## Config Timesource ## https://ubuntu101.co.za/ubuntu/fix-ntp-on-ubuntu-16-starting-crashing/
-	if [ $CONFIG_TIMESOURCE == 'false' ]; then 
-		write-log "green" ">>> Skipping Timesource configuration <<<"
-	else		
-		if which chronyd >/dev/null; then
-			write-log "bright_blue" ">>> Chrony service installed <<<"
-			TIME_CONF="/etc/chrony.conf"
-		else
-			TIME_CONF="/etc/ntp.conf"
-			if dpkg -l | grep -P "(ntp)" >/dev/null 2>&1; then
-				write-log "green" ">>> NTP service already installed <<<"
-			else
-				write-log "bright_blue" ">>> Installing NTP service <<<"
-				sudo $PKG_INSTALLER install -qqy ntp				
-			fi	
-		fi
-		
-		if cat "${TIME_CONF}" | grep "ubuntu|debian" >/dev/null 2>&1; then
-			write-log "bright_blue" ">>> Configuring NTP service <<<"				
-			configure_ntp "${TIME_CONF}" "${DISTRO}"
-		else
-			write-log "green" ">>> NTP service already configured <<<"
-		fi
-	fi	
+    if [ $RELEASE -lt 16 ]; then    
+        if dpkg -l | grep -P "(chrony)" >/dev/null 2>&1; then
+            write-log "bright_blue" ">>> Chrony service installed <<<"			
+        else
+            write-log "bright_blue" ">>> Installing NTP service <<<"
+            sudo $PKG_INSTALLER install -qqy ntp				
+        fi
+        
+        TIME_CONF="/etc/chrony.conf"
+        if cat "${TIME_CONF}" | grep "ubuntu|debian" >/dev/null 2>&1; then
+            write-log "bright_blue" ">>> Configuring NTP service <<<"				
+            configure_ntp "${TIME_CONF}" "${DISTRO}"
+        else
+            write-log "green" ">>> NTP service already configured <<<"
+        fi
+    else
+        write-log "bright_blue" ">>> Configuring timesyncd service <<<"	
+        sed -i "s/#NTP=.*/NTP=za.pool.ntp.org/g" /etc/systemd/timesyncd.conf
+    fi
 
 	if [ $DISTRO == 'ubuntu' ]; then
 		if dpkg -l | grep -P "(linux-azure*|linux-generic-lts-trusty)" >/dev/null 2>&1; then
