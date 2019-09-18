@@ -10,6 +10,7 @@
 # 256 /boot
 # 256 EFI ESP
 # Rest = /
+# VG = ubuntu-vg / LV = root
 
 ## Fix for Centos 7/8 - [[ $RELEASE =~ ^[7-8]{1}$ ]]
 
@@ -538,7 +539,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		fi
 	fi	
 
-	if [ `iptables -L | grep -e "ACC.*" | grep -P "ssh|ntp|icmp"  | wc -l` -ge 4 ]; then 	
+	if [ `iptables -L | grep -e "ACC.*" | grep -P "ssh|ntp|icmp"  | wc -l` -ge 5 ]; then 	
 		write-log "green" ">>> ssh|icmp|ntp rules already open in firewall <<<"
 	else
 		#http://dev-notes.eu/2016/08/persistent-iptables-rules-in-ubuntu-16-04-xenial-xerus/
@@ -701,7 +702,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 			write-log "green" ">>> linux-crashdump Package already installed <<<"
 		else
 			write-log "bright_yellow" ">>> Installing linux-crashdump <<<"
-			sudo aptitude install -y linux-crashdump
+			sudo apt install -qqy linux-crashdump
 		fi
 	fi
 	
@@ -742,12 +743,14 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		update-initramfs -u
 	fi 
 	
-	# Iptables Persistent rules
+	# Iptables Persistent rules - https://gist.github.com/alonisser/a2c19f5362c2091ac1e7
 	if [ `service netfilter-persistent status | tail -n 1 | cut -d ' ' -f6` == 'Started' ]; then 
 		write-log "green" ">>> Iptables Persistent rules Active <<<"
 	else
 		write-log "bright_blue" ">>> Enabling Iptables Persistent rules <<<"
-		sudo aptitude install -y iptables-persistent
+        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
+        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
+		sudo apt install -qqy iptables-persistent
 		sudo service netfilter-persistent start
 		sudo invoke-rc.d netfilter-persistent save
 	fi	
