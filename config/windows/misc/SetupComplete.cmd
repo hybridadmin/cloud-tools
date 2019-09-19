@@ -4,7 +4,7 @@ cmd /c winrm quickconfig -q >> %logfile%
 cmd /c winrm quickconfig -transport:http >> %logfile%
 cmd /c winrm set winrm/config @{MaxTimeoutms="1800000"} >> %logfile%
 cmd /c winrm set winrm/config/client @{TrustedHosts="41.185.*"} >> %logfile%
-cmd /c winrm set winrm/config/winrs @{MaxMemoryPerShellMB="1024"} >> %logfile%
+cmd /c winrm set winrm/config/winrs @{MaxMemoryPerShellMB="2048"} >> %logfile%
 cmd /c winrm set winrm/config/service @{AllowUnencrypted="true"} >> %logfile%
 cmd /c winrm set winrm/config/service/auth @{Basic="true"} >> %logfile%
 cmd /c winrm set winrm/config/client/auth @{Basic="true"} >> %logfile%
@@ -36,15 +36,11 @@ cmd /c net start W32Time >> %logfile%
 cmd /c w32tm /query /peers >> %logfile%
 cscript /b c:\windows\system32\slmgr.vbs /skms KMS_HOST_SERVER >> %logfile%
 cscript /b c:\windows\system32\slmgr.vbs -ato >> %logfile%
-::cmd /c reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverride /t REG_DWORD /d 0 /f >> %logfile%
-::cmd /c reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v FeatureSettingsOverrideMask /t REG_DWORD /d 3 /f >> %logfile%
-::cmd /c reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\QualityCompat" /v "cadca5fe-87d3-4b96-b7fb-a231484277cc" /t REG_DWORD /d 0 /f >> %logfile%
 cmd /c reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v HideFileExt /t REG_DWORD /d 00000000 /f  >> %logfile%
 cmd /c reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced" /v Hidden /t REG_DWORD /d 00000001 /f >> %logfile%
 cmd /c reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\system" /v LocalAccountTokenFilterPolicy /t REG_DWORD /d 00000001 /f >> %logfile%
 cmd /c reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN\Service" /v allow_unencrypted /t REG_DWORD /d 00000001 /f >> %logfile%
 cmd /c reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\WSMAN\Service" /v auth_basic /t REG_DWORD /d 00000001 /f	 >> %logfile%
 cmd /c reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" /v fDisableCpm /t REG_DWORD /d 00000000 /f  >> %logfile%
-::cmd /c reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\CredSSP\Parameters" /v AllowEncryptionOracle /t REG_DWORD /d 0000000 /f >> %logfile%
 cmd /c reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\ServerManager" /V DoNotOpenServerManagerAtLogon /t REG_DWORD /D 00000001 /f >> %logfile%
 cmd /c netsh advfirewall firewall delete rule name=all dir=out >> %logfile%
