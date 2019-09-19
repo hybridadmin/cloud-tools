@@ -56,7 +56,12 @@ function harden_ssh(){
     MACS="hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,umac-128-etm@openssh.com"
     CIPHERS="chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr"
     
-    sed -i 's/^HostKey \/etc\/ssh\/ssh_host_\(dsa\|ecdsa\)_key$/\#HostKey \/etc\/ssh\/ssh_host_\1_key/g' /etc/ssh/sshd_config
+    if [ $OS_NAME == "ubuntu" ] && [ $OS_RELEASE -le 16 ]; then
+        sed -i 's/^HostKey \/etc\/ssh\/ssh_host_\(dsa\|ecdsa\)_key$/\#HostKey \/etc\/ssh\/ssh_host_\1_key/g' /etc/ssh/sshd_config
+    else
+        sed -i 's/#\(.*ssh_host.*\(rsa\|ed25519\).*\)/\1/' /etc/ssh/sshd_config
+    fi
+    
     echo -e "\n# Restrict key exchange, cipher, and MAC algorithms \nKexAlgorithms ${KEXALGS} \nCiphers ${CIPHERS} \nMACs ${MACS}" >> /etc/ssh/sshd_config
    
     rm /etc/ssh/ssh_host_*key*
