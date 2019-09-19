@@ -1,19 +1,13 @@
 #!/bin/bash
 
-# https://docs.microsoft.com/en-us/azure/virtual-machines/linux/create-upload-centos
-# https://serverfault.com/questions/865063/no-crashkernel-parameter-in-the-kernel-cmdline
-# https://docs.microsoft.com/en-us/azure/virtual-machines/linux/debian-create-upload-vhd
-
-# https://github.com/szarkos/AzureBuildCentOS/blob/master/ks/azure/centos71-hpc.ks
-
 # Disk partitions
-# 256 /boot
+# 512 /boot
 # 256 EFI ESP
 # Rest = /
 # VG = ubuntu-vg / LV = root
+# New-VHD -Path "E:\Hyper-V\TEST992\VPS_Ubuntu_16.04_x64_Gen2.vhdx" -SizeBytes 10GB -Dynamic -BlockSizeBytes 1MB
 
 ## Fix for Centos 7/8 - [[ $RELEASE =~ ^[7-8]{1}$ ]]
-
 CURRENT_SCRIPT="$0"
 
 ##variables
@@ -37,30 +31,35 @@ function configure_ntp (){
 	NTP_CONFIG=$1
 	DISTRO=$2
 	
-	if [ $DISTRO == "centos" ]; then 
-		C_RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)
-        NTP_SERVICE="ntpd"
-	else
-		U_RELEASE=$(lsb_release -rs | cut -d '.' -f 1)
-        NTP_SERVICE="ntp"
-	fi
+	if [ $DISTRO == "centos" ]; then NTP_SERVICE="ntpd"; else NTP_SERVICE="ntp"; fi
 	
 	cp ${NTP_CONFIG} "${NTP_CONFIG}.orig"
 	sed -i "s/0.${DISTRO}.pool.ntp.org/za.pool.ntp.org/g" ${NTP_CONFIG}
     sed -i "/[0-9].${DISTRO}.pool.ntp.org/d" ${NTP_CONFIG}
 	
-	if [[ $NTP_CONFIG =~ "chrony" ]]; then
-		systemctl enable chronyd && systemctl enable chronyd
-		chronyc sources
-	else
-		if [ $C_RELEASE == '6' ] || [ $U_RELEASE -le 14 ] ; then
-			if [ $C_RELEASE == '6' ]; then chkconfig ntpd on; fi 			
-			service ntpd start && service ntpd status
-		else
-			systemctl enable $NTP_SERVICE && systemctl start $NTP_SERVICE && systemctl status $NTP_SERVICE
-		fi
-		ntpq -cpe -cas
-	fi
+	systemctl enable chronyd && systemctl restart chronyd
+	chronyc sources
+}
+
+function harden_ssh(){
+    # https://www.sshaudit.com/hardening_guides.html
+    KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group18-sha512,diffie-hellman-group16-sha512,diffie-hellman-group14-sha256"
+    MACS="hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,umac-128-etm@openssh.com"
+    CIPHERS="chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr"
+    
+    sed -i -e "s/KexAlgorithms.*/KexAlgorithms ${KEXALGS}/g" /etc/ssh/sshd_config
+    sed -i -e "s/MACs.*/MACs ${MACS}/g" /etc/ssh/sshd_config
+    sed -i -e "s/Ciphers.*/${CIPHERS}/g" /etc/ssh/sshd_config
+    sed -i -e "s/AuthorizedKeysFile.*/AuthorizedKeysFile .ssh/authorized_keys/g" /etc/ssh/sshd_config
+    sed -i 's/#\(.*ssh_host.*\(rsa\|ed25519\).*\)/\1/' /etc/ssh/sshd_config
+    sed -i '/#\(.*ssh_host.*\(dsa\).*\)/d' /etc/ssh/sshd_config
+    
+    rm /etc/ssh/ssh_host_*key*
+    ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key < /dev/null
+    ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key < /dev/null
+   
+    awk '$5 >= 3071' /etc/ssh/moduli > /etc/ssh/moduli.safe
+    mv /etc/ssh/moduli.safe /etc/ssh/moduli
 }
 
 ### Start Distro Detection ###
@@ -76,7 +75,7 @@ elif [[ `which apt` ]]; then
 	DISTRO=$(lsb_release -is | tr '[A-Z]' '[a-z]')
 	PKG_INSTALLER=$(which apt)
 	export DEBIAN_FRONTEND=noninteractive
-	UPDATE_MIRROR_LIST="true"
+	UPDATE_MIRROR_LIST="false"
 	OPENLOGIC_REPO="false"
 	ENHANCED_SESSION_MODE="false"
 	REQUIRED_PKGS="gdisk parted wget aptitude git debconf-utils pwgen"
@@ -108,6 +107,8 @@ else
 fi
 
 if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
+    # https://docs.microsoft.com/en-us/azure/virtual-machines/linux/create-upload-centos
+    
 	RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)	
 	MINOR_VERSION=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -d "." -f 2)
 	
@@ -165,7 +166,6 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		sudo systemctl enable waagent
 	fi
 	
-	# https://raw.githubusercontent.com/szarkos/AzureBuildCentOS/master/config/azure/OpenLogic.repo
 	if [ $OPENLOGIC_REPO == 'true' ] && [ $DISTRO == 'centos' ]; then	
 		if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then rm -rf /etc/yum.repos.d/CentOS-Base.repo ; fi
 	
@@ -191,14 +191,15 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	fi
 
 	## Config Timesource ## 
-	if $PKG_INSTALLER list installed | grep -P "(ntp\..*64)" >/dev/null 2>&1; then
-		write-log "bright_blue" ">>> ntp service installed <<<"
+	if $PKG_INSTALLER list installed | grep -P "(chrony\..*64)" >/dev/null 2>&1; then
+		write-log "bright_blue" ">>> NTP service installed <<<"
 	else			
 		write-log "bright_blue" ">>> Installing NTP service <<<"
-		sudo $PKG_INSTALLER install -y -q ntp
+        systemctl stop ntpd && systemctl disable ntpd && systemctl mask ntpd
+		sudo $PKG_INSTALLER install -y -q chrony
 	fi
 	
-    TIME_CONF="/etc/ntp.conf"
+    TIME_CONF="/etc/chrony.conf"
 	if cat "${TIME_CONF}" | grep "centos|redhat" >/dev/null 2>&1; then
 		write-log "bright_blue" ">>> Configuring NTP service <<<"		
 		configure_ntp "${TIME_CONF}" "${DISTRO}"
@@ -344,7 +345,6 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		write-log "bright_blue" ">>> Installing/Configuring Kdump <<<"
 		sudo $PKG_INSTALLER install -y -q  kexec-tools
 		chkconfig kdump on
-		#https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Kernel_Crash_Dump_Guide/sect-kdump-config-cli.html
 	fi
 
 	if  cat /proc/cmdline | grep "noop" >/dev/null 2>&1; then
@@ -447,8 +447,6 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then 
 	#UBUNTU
 	# https://peteris.rocks/blog/quiet-and-unattended-installation-with-apt-get/
-	# https://unix.stackexchange.com/questions/478078/debian-e-command-line-option-allow-releaseinfo-change-is-not-understood
-	# https://github.com/credativ/azure-manage/blob/develop/azure_build_image_debian
 	# https://docs.microsoft.com/en-us/azure/virtual-machines/linux/debian-create-upload-vhd
 	CODE_NAME=$(lsb_release -cs)
 	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)
@@ -552,14 +550,14 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 	fi
 
-	#if cat /etc/ntp.conf | grep "0.ubuntu.pool.ntp.org" >/dev/null 2>&1; then
-	## Config Timesource ## https://ubuntu101.co.za/ubuntu/fix-ntp-on-ubuntu-16-starting-crashing/
+	## Config Timesource 
     if [ $RELEASE -lt 16 ]; then    
         if dpkg -l | grep -P "(chrony)" >/dev/null 2>&1; then
-            write-log "bright_blue" ">>> Chrony service installed <<<"			
+            write-log "bright_blue" ">>> NTP service installed <<<"			
         else
             write-log "bright_blue" ">>> Installing NTP service <<<"
-            sudo $PKG_INSTALLER install -qqy ntp				
+            systemctl stop ntp && systemctl disable ntp && systemctl mask ntp
+            sudo $PKG_INSTALLER install -qqy chrony				
         fi
         
         TIME_CONF="/etc/chrony.conf"
@@ -691,10 +689,12 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
     if [ -f /etc/default/kexec ] && [ $RELEASE -ge '16' ]; then
         write-log "bright_yellow" ">>> Installing and configuring kexec <<<"
         if ! dpkg -l | grep kexec-tools | awk '{print $3}' | tr -d '[[:space:]]' >/dev/null 2>&1; then
+            echo kexec-tools kexec-tools/load_kexec boolean true | sudo debconf-set-selections
+            echo kexec-tools kexec-tools/use_grub_config boolean true | sudo debconf-set-selections
             sudo $PKG_INSTALLER -qqy install kexec-tools
         fi 
-        sed -i 's/^LOAD_KEXEC=.*/LOAD_KEXEC=true/' /etc/default/kexec
-        sed -i 's/^USE_GRUB_CONFIG=.*/USE_GRUB_CONFIG=true/' /etc/default/kexec    
+        #sed -i 's/^LOAD_KEXEC=.*/LOAD_KEXEC=true/' /etc/default/kexec
+        #sed -i 's/^USE_GRUB_CONFIG=.*/USE_GRUB_CONFIG=true/' /etc/default/kexec    
 	fi
     
 	if [ $DISTRO == 'ubuntu' ]; then
@@ -711,6 +711,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 			write-log "green" ">>> kdump-tools Package already installed <<<"
 		else
 			write-log "bright_blue" ">>> Installing Kdump <<<"
+            echo kdump-tools kdump-tools/use_kdump boolean true | sudo debconf-set-selections
 			sudo $PKG_INSTALLER -qqy install kdump-tools
 		fi	
 	else
@@ -749,10 +750,9 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	else
 		write-log "bright_blue" ">>> Enabling Iptables Persistent rules <<<"
         echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
-        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
+        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
 		sudo apt install -qqy iptables-persistent
-		sudo service netfilter-persistent start
-		sudo invoke-rc.d netfilter-persistent save
+		sudo service netfilter-persistent start && 	sudo invoke-rc.d netfilter-persistent save
 	fi	
 	
 	write-log "bright_yellow" ">>> Cleaning up packages <<<"
@@ -780,15 +780,10 @@ if [ $CLOUD_PART_TOOLS == 'true' ]; then
 	fi 
 fi
 
-if [ `ssh-keygen -lf /etc/ssh/ssh_host_rsa_key.pub | cut -d ' ' -f 1` -lt 4096 ]; then
-	write-log "bright_yellow" ">>> Regenerating ssh host keys <<<"
-	if [ $DISTRO == "centos" ]; then 
-		sudo rm -r /etc/ssh/ssh*key
-		sudo systemctl restart sshd
-	else	
-		sudo dpkg-reconfigure openssh-server
-	fi 
-fi
+## SSH hardening
+if [ `cat /etc/ssh/moduli | grep -P "\b2047\b" | wc -l` -gt 0 ]; then
+    harden_ssh
+fi 
 
 if [ $BLACKLIST_MODULES == "true" ]; then
 	BLACKLIST_CONF="/etc/modprobe.d/local-blacklist.conf"
@@ -833,4 +828,4 @@ else
 	rm -- "$0"
 fi
 ####
-# yum -y -q install bash-completion bash-completion-extras
+
