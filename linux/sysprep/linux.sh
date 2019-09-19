@@ -42,24 +42,31 @@ function configure_ntp (){
 }
 
 function harden_ssh(){
+    OS_NAME=$1
+    OS_RELEASE=$2
     # https://www.sshaudit.com/hardening_guides.html
-    KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group18-sha512,diffie-hellman-group16-sha512,diffie-hellman-group14-sha256"
+    cp /etc/ssh/sshd_config /etc/ssh/sshd_config.old
+    if [ $OS_NAME == "ubuntu" ]; then
+        if [ $OS_RELEASE -le 16 ]; then KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256"; else KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group18-sha512,diffie-hellman-group16-sha512,diffie-hellman-group14-sha256"; fi
+        SVC_NAME="ssh"
+    else
+        KEXALGS="curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group18-sha512,diffie-hellman-group16-sha512,diffie-hellman-group-exchange-sha256"
+        SVC_NAME="sshd"
+    fi
     MACS="hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,umac-128-etm@openssh.com"
     CIPHERS="chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr"
     
-    sed -i -e "s/KexAlgorithms.*/KexAlgorithms ${KEXALGS}/g" /etc/ssh/sshd_config
-    sed -i -e "s/MACs.*/MACs ${MACS}/g" /etc/ssh/sshd_config
-    sed -i -e "s/Ciphers.*/${CIPHERS}/g" /etc/ssh/sshd_config
-    sed -i -e "s/AuthorizedKeysFile.*/AuthorizedKeysFile .ssh/authorized_keys/g" /etc/ssh/sshd_config
-    sed -i 's/#\(.*ssh_host.*\(rsa\|ed25519\).*\)/\1/' /etc/ssh/sshd_config
-    sed -i '/#\(.*ssh_host.*\(dsa\).*\)/d' /etc/ssh/sshd_config
-    
+    sed -i 's/^HostKey \/etc\/ssh\/ssh_host_\(dsa\|ecdsa\)_key$/\#HostKey \/etc\/ssh\/ssh_host_\1_key/g' /etc/ssh/sshd_config
+    echo -e "\n# Restrict key exchange, cipher, and MAC algorithms \nKexAlgorithms ${KEXALGS} \nCiphers ${CIPHERS} \nMACs ${MACS}" >> /etc/ssh/sshd_config
+   
     rm /etc/ssh/ssh_host_*key*
-    ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key < /dev/null
-    ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key < /dev/null
+    ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N ""
+    ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ""
    
     awk '$5 >= 3071' /etc/ssh/moduli > /etc/ssh/moduli.safe
     mv /etc/ssh/moduli.safe /etc/ssh/moduli
+    
+    service $SVC_NAME restart
 }
 
 ### Start Distro Detection ###
@@ -782,7 +789,7 @@ fi
 
 ## SSH hardening
 if [ `cat /etc/ssh/moduli | grep -P "\b2047\b" | wc -l` -gt 0 ]; then
-#######    harden_ssh
+    harden_ssh "$DISTRO" "$RELEASE"
 fi 
 
 if [ $BLACKLIST_MODULES == "true" ]; then
