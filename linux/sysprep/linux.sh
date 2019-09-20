@@ -1,9 +1,6 @@
 #!/bin/bash
 
-# Disk partitions
-# 512 /boot
-# 256 EFI ESP
-# Rest = /
+# Disk partitions: 512MB =/boot, 256MB = EFI ESP , Rest = /
 # VG = ubuntu-vg / LV = root
 # New-VHD -Path "E:\Hyper-V\TEST992\VPS_Ubuntu_16.04_x64_Gen2.vhdx" -SizeBytes 10GB -Dynamic -BlockSizeBytes 1MB
 
@@ -20,11 +17,8 @@ CLOUD_PART_TOOLS="false"
 ALLOWED_SOURCES=("196.220.32.0/24" "41.185.11.0/24")
 
 ## Color logger
-if [ ! -f /tmp/color_logger.sh ]; then
-	curl -s -o /tmp/color_logger.sh https://raw.githubusercontent.com/hybridadmin/color-logger/master/lib/color_logger.sh
-fi
-echo "Enabling colored output"
-. /tmp/color_logger.sh
+echo "Enabling colored output"    
+source <(curl -s https://raw.githubusercontent.com/hybridadmin/color-logger/master/lib/color_logger.sh) 
 ## Color logger
 
 function configure_ntp (){
@@ -34,8 +28,7 @@ function configure_ntp (){
 	if [ $DISTRO == "centos" ]; then NTP_SERVICE="ntpd"; else NTP_SERVICE="ntp"; fi
 	
 	cp ${NTP_CONFIG} "${NTP_CONFIG}.orig"
-	sed -i "s/0.${DISTRO}.pool.ntp.org/za.pool.ntp.org/g" ${NTP_CONFIG}
-    sed -i "/[0-9].${DISTRO}.pool.ntp.org/d" ${NTP_CONFIG}
+	sed -i "s/${DISTRO}/za/g" ${NTP_CONFIG}
 	
 	systemctl enable chronyd && systemctl restart chronyd
 	chronyc sources
@@ -45,24 +38,25 @@ function harden_ssh(){
     OS_NAME=$1
     OS_RELEASE=$2
     # https://www.sshaudit.com/hardening_guides.html
+    # SSH Hardening Centos 6: KexAlgorithms diffie-hellman-group-exchange-sha256 // MACs hmac-sha2-256,hmac-sha2-512 //Ciphers aes128-ctr,aes192-ctr,aes256-ctr
     cp /etc/ssh/sshd_config /etc/ssh/sshd_config.old
     if [ $OS_NAME == "ubuntu" ]; then
-        if [ $OS_RELEASE -le 16 ]; then KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256"; else KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group18-sha512,diffie-hellman-group16-sha512,diffie-hellman-group14-sha256"; fi
+        if [ $OS_RELEASE -le 16 ]; then KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256"; else KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group-exchange-sha256"; fi
         SVC_NAME="ssh"
     else
-        KEXALGS="curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group18-sha512,diffie-hellman-group16-sha512,diffie-hellman-group-exchange-sha256"
+        KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group-exchange-sha256"
         SVC_NAME="sshd"
     fi
-    MACS="hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,umac-128-etm@openssh.com"
-    CIPHERS="chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr"
     
-    if [ $OS_NAME == "ubuntu" ] && [ $OS_RELEASE -le 16 ]; then
-        sed -i 's/^HostKey \/etc\/ssh\/ssh_host_\(dsa\|ecdsa\)_key$/\#HostKey \/etc\/ssh\/ssh_host_\1_key/g' /etc/ssh/sshd_config
-    else
+    MACS="hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,umac-128-etm@openssh.com"
+    CIPHERS="chacha20-poly1305@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com"
+    
+    if [ $OS_NAME == "ubuntu" ] && [ $OS_RELEASE -ge 16 ]; then
         sed -i 's/#\(.*ssh_host.*\(rsa\|ed25519\).*\)/\1/' /etc/ssh/sshd_config
-    fi
-    
-    echo -e "\n# Restrict key exchange, cipher, and MAC algorithms \nKexAlgorithms ${KEXALGS} \nCiphers ${CIPHERS} \nMACs ${MACS}" >> /etc/ssh/sshd_config
+    else
+        sed -i 's/^HostKey \/etc\/ssh\/ssh_host_\(dsa\|ecdsa\)_key$/\#HostKey \/etc\/ssh\/ssh_host_\1_key/g' /etc/ssh/sshd_config       
+    fi    
+    echo -e "\n\n# Restricted key exchange, cipher, and MAC algorithms \nKexAlgorithms ${KEXALGS} \nCiphers ${CIPHERS} \nMACs ${MACS}" >> /etc/ssh/sshd_config
    
     rm /etc/ssh/ssh_host_*key*
     ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N ""
@@ -212,7 +206,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	fi
 	
     TIME_CONF="/etc/chrony.conf"
-	if cat "${TIME_CONF}" | grep "centos|redhat" >/dev/null 2>&1; then
+	if cat "${TIME_CONF}" | grep -P "centos|redhat" >/dev/null 2>&1; then
 		write-log "bright_blue" ">>> Configuring NTP service <<<"		
 		configure_ntp "${TIME_CONF}" "${DISTRO}"
 	else
@@ -821,7 +815,7 @@ find /var/log -type f -name "*.1" -exec rm -vf \{\} \;
 find /var/log -type f -exec truncate -s0 \{\} \;
 
 write-log "bright_yellow" ">>> Clearing Console history <<<"
-cat /dev/null > "$HISTFILE" && history -cw
+cat /dev/null > /root/.bash_history && history -cw
 
 if [ $PREP_FOR_AZURE == 'true' ]; then	
 	write-log "bright_cyan" ">>> Running Azure Linux Agent deprovisioning steps <<<"
