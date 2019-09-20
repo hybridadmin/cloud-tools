@@ -10,7 +10,7 @@ cmd /c winrm set winrm/config/service/auth @{Basic="true"} >> %logfile%
 cmd /c winrm set winrm/config/client/auth @{Basic="true"} >> %logfile%
 cmd /c winrm set winrm/config/listener?Address=*+Transport=HTTP @{Port="5985"} >> %logfile%
 cmd /c netsh advfirewall firewall add rule name="WinRM (TCP-In)" dir=in action=allow protocol=TCP localport=5985 remoteip=IP_LIST profile=public >> %logfile%
-cmd /c netsh advfirewall firewall add rule name="Allow Incoming Echo Request - ICMPv4-In" protocol=icmpv4:8,any dir=in action=allow >> %logfile%
+cmd /c netsh advfirewall firewall add rule name="Echo Request - ICMPv4-In" protocol=icmpv4:8,any dir=in action=allow >> %logfile%
 cmd /C wmic useraccount where "name='admin'" set PasswordExpires=FALSE >> %logfile%
 cmd /C wmic useraccount where "name='administrator'" set PasswordExpires=FALSE >> %logfile%
 cmd /C reg add "HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\WindowsUpdate"
