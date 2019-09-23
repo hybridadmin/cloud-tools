@@ -3,7 +3,7 @@ set "logfile=C:\Windows\Temp\finalize-setup.log"
 cmd /c winrm quickconfig -q >> %logfile%
 cmd /c winrm quickconfig -transport:http >> %logfile%
 cmd /c winrm set winrm/config @{MaxTimeoutms="1800000"} >> %logfile%
-cmd /c winrm set winrm/config/client @{TrustedHosts="41.185.*"} >> %logfile%
+cmd /c winrm set winrm/config/client @{TrustedHosts="WINRM_TRUSTED_HOSTS"} >> %logfile%
 cmd /c winrm set winrm/config/winrs @{MaxMemoryPerShellMB="2048"} >> %logfile%
 cmd /c winrm set winrm/config/service @{AllowUnencrypted="true"} >> %logfile%
 cmd /c winrm set winrm/config/service/auth @{Basic="true"} >> %logfile%
