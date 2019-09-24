@@ -4,11 +4,12 @@
 # VG = ubuntu-vg / LV = root
 # New-VHD -Path "E:\Hyper-V\TEST992\VPS_Ubuntu_16.04_x64_Gen2.vhdx" -SizeBytes 10GB -Dynamic -BlockSizeBytes 1MB
 
-## Fix for Centos 7/8 - [[ $RELEASE =~ ^[7-8]{1}$ ]]
+## Fix for Centos 7/8 - [[ $RELEASE =~ ^[7-8]{1}$ ]] 
+## if [[ -n "$var" && -e "$var" ]] ; then
 CURRENT_SCRIPT="$0"
 
 ##variables
-COUNTRY_CODE=$(curl -s "http://api.ipapi.com/check?access_key=d6c224f073f8cbe9de4c14999f39a93c&fields=country_code" | cut -d ':' -f2 | cut -d '"' -f2)
+COUNTRY_CODE=$(curl -s ipinfo.io | grep "country" | cut -d '"' -f4)
 ADD_POWERSHELL_DSC="false"
 HOLD_KERNEL_UPDATES="false"
 PREP_FOR_AZURE="false"
@@ -65,7 +66,7 @@ function harden_ssh(){
     awk '$5 >= 3071' /etc/ssh/moduli > /etc/ssh/moduli.safe
     mv /etc/ssh/moduli.safe /etc/ssh/moduli
     
-    service $SVC_NAME restart
+    if [ $OS_NAME == "cantos" ] && [ $OS_RELEASE -le 6 ]; then service $SVC_NAME restart; else systemctl restart $SVC_NAME; fi
 }
 
 ### Start Distro Detection ###
@@ -120,7 +121,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	
 	write-log "bright_blue" ">>> DETECTED DISTRO: $DISTRO - RELEASE: ${RELEASE} <<<"
 
-    if [[ $RELEASE == '7' ]]; then 
+    if [[ $RELEASE -ge '7' ]]; then 
         sudo $PKG_INSTALLER groups mark convert
     fi 
 
@@ -175,11 +176,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	if [ $OPENLOGIC_REPO == 'true' ] && [ $DISTRO == 'centos' ]; then	
 		if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then rm -rf /etc/yum.repos.d/CentOS-Base.repo ; fi
 	
-		if [[ $RELEASE == '7' ]]; then 
-			curl -o "/etc/yum.repos.d/CentOS-Base.repo" https://raw.githubusercontent.com/hybridadmin/centos-azure/master/config/repo/CentOS-7-Base.repo
-		else
-			curl -o "/etc/yum.repos.d/CentOS-Base.repo" https://raw.githubusercontent.com/hybridadmin/centos-azure/master/config/repo/CentOS-6-Base.repo
-		fi
+		curl -o "/etc/yum.repos.d/CentOS-Base.repo" https://raw.githubusercontent.com/hybridadmin/centos-azure/master/config/repo/CentOS-${RELEASE}-Base.repo
 	fi
 
 	if [ "/etc/udev/rules.d/70-persistent-net.rules" -ef "/dev/null" ]; then
@@ -192,7 +189,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	if [ "/lib/udev/rules.d/75-persistent-net-generator.rules" -ef "/dev/null" ]; then
 	   write-log "bright_cyan" ">>> NET Persistent rules fix for /lib/udev/rules.d/75-persistent-net-generator.rules already applied <<<"
 	else
-	   write-log "bright_blue" ">>> Applying NET Persistent rules fix for /dev/null /lib/udev/rules.d/75-persistent-net-generator.rules <<<"
+        write-log "bright_blue" ">>> Applying NET Persistent rules fix for /dev/null /lib/udev/rules.d/75-persistent-net-generator.rules <<<"
 	    rm -f /lib/udev/rules.d/75-persistent-net-generator.rules && ln -s /dev/null /lib/udev/rules.d/75-persistent-net-generator.rules
 	fi
 
@@ -226,7 +223,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 			write-log "green" ">>> WSMAN rules already open in firewall <<<"
 		else
 			write-log "bright_blue" ">>> Applying WSMAN firewall rules <<<"
-			if [ $RELEASE == '7' ]; then
+			if [ $RELEASE -ge '7' ]; then
 				for i in  "${ALLOWED_SOURCES[@]}"; do
 					sudo bash -c "firewall-offline-cmd --zone=public --add-rich-rule='rule family=ipv4 source address="$i" port port="5985-5986" protocol=tcp accept'"
 				done
@@ -274,7 +271,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		write-log "green" ">>> ssh|icmp|ntp rules already open in firewall <<<"
 	else
 		write-log "bright_blue" ">>> Applying ssh|icmp|ntp firewall rules <<<"
-		if [ $RELEASE == '7' ]; then
+		if [ $RELEASE -ge '7' ]; then
 			firewall-offline-cmd --zone=public --add-service=ssh 
 			firewall-offline-cmd --zone=public --add-service=ntp
 		else
@@ -290,23 +287,21 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 		
 		if [ $RELEASE == '8' ]; then
-			REPO_URL='https://www.elrepo.org/elrepo-release-8.0-1.el8.elrepo.noarch.rpm'
+			yum install 'https://www.elrepo.org/elrepo-release-8.0-2.el8.elrepo.noarch.rpm'
 		elif [ $RELEASE == '7' ]; then 
-			REPO_URL='https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm'
+			yum install 'https://www.elrepo.org/elrepo-release-7.0-4.el7.elrepo.noarch.rpm'
 		else
-			REPO_URL='https://www.elrepo.org/elrepo-release-6-8.el6.elrepo.noarch.rpm'
+			yum install 'https://www.elrepo.org/elrepo-release-6-9.el6.elrepo.noarch.rpm'
 		fi
 		
-		rpm -Uvh $REPO_URL
 		yum --enablerepo=elrepo-kernel install kernel-ml
-
 		## https://www.thegeekdiary.com/centos-rhel-7-change-default-kernel-boot-with-old-kernel/
 		grub2-set-default 0
 		##grub2-mkconfig -o /boot/grub2/grub.cfg
 	fi
 	
 	## Iptables Persistent Rules
-	if [ $RELEASE == '7' ]; then
+	if [ $RELEASE -ge '7' ]; then
 		firewall-cmd --reload && firewall-cmd --list-all
 	else
 		iptables-save > /etc/sysconfig/iptables
@@ -349,7 +344,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		write-log "green" ">>> Kdump already installed and configured... Skipping <<<"
 	else
 		write-log "bright_blue" ">>> Installing/Configuring Kdump <<<"
-		sudo $PKG_INSTALLER install -y -q  kexec-tools
+		sudo $PKG_INSTALLER install -y -q kexec-tools
 		chkconfig kdump on
 	fi
 
@@ -392,13 +387,6 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 				write-log "bright_blue" ">>> Installing Linux Integration Services drivers for ${DISTRO} ${RELEASE} <<<"
 				sudo $PKG_INSTALLER -y -q install microsoft-hyper-v
 			fi
-		else
-			if $PKG_INSTALLER list installed | grep -P "(hyperv-daemons)" >/dev/null 2>&1; then
-				write-log "green" ">>> Linux Integration Services drivers already installed <<<"
-			else
-				write-log "bright_blue" ">>> Installing Linux Integration Services drivers for ${DISTRO} ${RELEASE} <<<"
-				sudo $PKG_INSTALLER -y -q install hyperv-daemons
-			fi
 		fi
 	else
 		if $PKG_INSTALLER list installed | grep -P "(hyperv-daemons)" >/dev/null 2>&1; then
@@ -421,7 +409,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		fi 	
     fi	
 
-	if [ $RELEASE == '7' ]; then
+	if [ $RELEASE -ge '7' ]; then
 		#https://noobient.com/2017/09/27/fixing-the-efi-bootloader-on-centos-7/
 		#https://bugs.centos.org/view.php?id=15522
 		if [ $MINOR_VERSION == '6' ]; then
@@ -444,6 +432,11 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 			write-log "green" ">>> Hyper-V Hot-Add Support already enabled in file /etc/udev/rules.d/100-balloon.rules <<<"
 		fi
 	fi
+    
+    if [ -f /root/anaconda-ks.cfg ]; then 
+        write-log "bright_yellow" ">>> Cleaning up left over setup files <<<"
+        rm -rf /root/anaconda-ks.cfg
+    fi
 
 	write-log "bright_yellow" ">>> Cleaning up packages <<<"
 	sudo $PKG_INSTALLER -y -q upgrade 
