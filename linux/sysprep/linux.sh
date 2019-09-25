@@ -39,6 +39,7 @@ function harden_ssh(){
     OS_NAME=$1
     OS_RELEASE=$2
     # https://www.sshaudit.com/hardening_guides.html
+    # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/pdf/security_hardening/Red_Hat_Enterprise_Linux-8-Security_hardening-en-US.pdf
     # SSH Hardening Centos 6: KexAlgorithms diffie-hellman-group-exchange-sha256 // MACs hmac-sha2-256,hmac-sha2-512 //Ciphers aes128-ctr,aes192-ctr,aes256-ctr
     cp /etc/ssh/sshd_config /etc/ssh/sshd_config.old
     if [ $OS_NAME == "ubuntu" ]; then
@@ -51,6 +52,8 @@ function harden_ssh(){
     
     MACS="hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,umac-128-etm@openssh.com"
     CIPHERS="chacha20-poly1305@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com"
+    
+    if [ $OS_NAME == "centos" ] && [ $OS_RELEASE -ge 8 ]; then sed -i '/^# CRYPTO_POLICY=.*/s/^#//g' /etc/sysconfig/sshd; fi 
     
     if [ $OS_NAME == "ubuntu" ] && [ $OS_RELEASE -ge 16 ]; then
         sed -i 's/#\(.*ssh_host.*\(rsa\|ed25519\).*\)/\1/' /etc/ssh/sshd_config
@@ -66,20 +69,29 @@ function harden_ssh(){
     awk '$5 >= 3071' /etc/ssh/moduli > /etc/ssh/moduli.safe
     mv /etc/ssh/moduli.safe /etc/ssh/moduli
     
-    if [ $OS_NAME == "cantos" ] && [ $OS_RELEASE -le 6 ]; then service $SVC_NAME restart; else systemctl restart $SVC_NAME; fi
+    if [ $OS_NAME == "centos" ] && [ $OS_RELEASE -le 6 ]; then service $SVC_NAME restart; else systemctl restart $SVC_NAME; fi
 }
 
 ### Start Distro Detection ###
 if [[ `which yum` ]]; then
 	DISTRO=$(cat /etc/*release | grep -E "^(Cent|Fedo|Redh)" | awk '{print $1}' | head -n1 | tr '[A-Z]' '[a-z]')
-	PKG_INSTALLER=$(which yum)
+	RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)	
+	MINOR_VERSION=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -d "." -f 2)
 	MAINLINE_KERNEL="false"
 	EPEL_REPO="true"
 	REMI_REPO="true"
 	OPENLOGIC_REPO="false"
-	REQUIRED_PKGS="grubby nano partx gdisk parted wget python-pyasn1 net-tools python python-devel pam-devel openssl-devel policycoreutils-python yum-utils yum-cron"
+    if [ $RELEASE -ge 8 ]; then
+        PKG_INSTALLER=$(which dnf)
+        REQUIRED_PKGS="grubby nano partx gdisk parted wget net-tools pam-devel openssl-devel"
+	else
+        PKG_INSTALLER=$(which yum)
+        REQUIRED_PKGS="grubby nano partx gdisk parted wget python-pyasn1 net-tools python python-devel pam-devel openssl-devel policycoreutils-python yum-utils yum-cron"
+    fi
 elif [[ `which apt` ]]; then
 	DISTRO=$(lsb_release -is | tr '[A-Z]' '[a-z]')
+	CODE_NAME=$(lsb_release -cs)
+	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)
 	PKG_INSTALLER=$(which apt)
 	export DEBIAN_FRONTEND=noninteractive
 	UPDATE_MIRROR_LIST="false"
@@ -114,14 +126,10 @@ else
 fi
 
 if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
-    # https://docs.microsoft.com/en-us/azure/virtual-machines/linux/create-upload-centos
-    
-	RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)	
-	MINOR_VERSION=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -d "." -f 2)
-	
+    # https://docs.microsoft.com/en-us/azure/virtual-machines/linux/create-upload-centos	
 	write-log "bright_blue" ">>> DETECTED DISTRO: $DISTRO - RELEASE: ${RELEASE} <<<"
 
-    if [[ $RELEASE -ge '7' ]]; then 
+    if [[ $RELEASE == '7' ]]; then 
         sudo $PKG_INSTALLER groups mark convert
     fi 
 
@@ -316,28 +324,35 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		fi
 	fi 	
 
-	if [[ `cat /etc/yum/yum-cron.conf | grep 'apply_updates' | cut -d '=' -f 2` == "yes" ]]; then
-		write-log "green" ">>> yum cron already configured <<<"
-	else
-		write-log "bright_blue" ">>> configuring yum cron <<<"
-		sed -i 's/apply_updates.*/apply_updates=no/' /etc/yum/yum-cron.conf
-        sudo systemctl enable yum-cron.service && sudo systemctl start yum-cron.service
-	fi
+    if [ $RELEASE -le '7' ]; then
+        if [[ `cat /etc/yum/yum-cron.conf | grep 'apply_updates' | cut -d '=' -f 2` == "yes" ]]; then
+            write-log "green" ">>> yum cron already configured <<<"
+        else
+            write-log "bright_blue" ">>> configuring yum cron <<<"
+            sed -i 's/apply_updates.*/apply_updates=no/' /etc/yum/yum-cron.conf
+            sudo systemctl enable yum-cron.service && sudo systemctl start yum-cron.service
+        fi
+    fi
     
-	if [[ `cat /etc/yum.conf | grep 'installonly_limit' | cut -d '=' -f 2` -eq 2 ]]; then
+    if [ $RELEASE -le '7' ]; then PKG_INSTALLER_CONF="/etc/yum.conf" ; else PKG_INSTALLER_CONF="/etc/dnf/dnf.conf"; fi
+	if [[ `cat $PKG_INSTALLER_CONF | grep 'installonly_limit' | cut -d '=' -f 2` -eq 2 ]]; then
 		write-log "green" ">>> Installed Kernel limit already set <<<"
 	else
 		write-log "bright_blue" ">>> Applying Installed Kernel limit <<<"
 		#crudini --set --verbose /etc/yum.conf main installonly_limit 2
-		sed -i 's/installonly_limit.*/installonly_limit=2/' /etc/yum.conf
+		sed -i 's/installonly_limit.*/installonly_limit=2/' $PKG_INSTALLER_CONF
 	fi
 	
 	if [[ `$PKG_INSTALLER list installed --showduplicates kernel | grep 'kernel' | wc -l` -le 2 ]]; then
 		write-log "green" ">>> No Old Installed Kernels to remove. Skipping  <<<"
 	else
 		write-log "bright_blue" ">>> Removing Old Kernels <<<"
-		sudo $PKG_INSTALLER list --showduplicates kernel
-		package-cleanup --oldkernels --count=2
+        sudo $PKG_INSTALLER list --showduplicates kernel
+        if [ $RELEASE -ge '8' ]; then
+            sudo $PKG_INSTALLER remove $(dnf repoquery --installonly --latest-limit=-2 -q)
+        else		
+            package-cleanup --oldkernels --count=2
+        fi
 	fi
 	
 	if $PKG_INSTALLER list installed | grep "kexec-tools"  >/dev/null 2>&1; then
@@ -446,10 +461,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then 
 	#UBUNTU
 	# https://peteris.rocks/blog/quiet-and-unattended-installation-with-apt-get/
-	# https://docs.microsoft.com/en-us/azure/virtual-machines/linux/debian-create-upload-vhd
-	CODE_NAME=$(lsb_release -cs)
-	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)
-	
+	# https://docs.microsoft.com/en-us/azure/virtual-machines/linux/debian-create-upload-vhd	
 	write-log "bright_blue" ">>> DETECTED DISTRO: $DISTRO - RELEASE: ${RELEASE} - CODENAME: ${CODE_NAME} <<<"		
 
 	if [[ $UPDATE_MIRROR_LIST == 'false' ]]; then
