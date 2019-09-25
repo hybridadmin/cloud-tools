@@ -793,7 +793,10 @@ fi
 
 ## SSH hardening
 if [ `cat /etc/ssh/moduli | grep -P "\b2047\b" | wc -l` -gt 0 ]; then
+    write-log "bright_yellow" ">>> Starting SSH hardening steps <<<"
     harden_ssh "$DISTRO" "$RELEASE"
+else
+    write-log "green" ">>> SSH hardening already applied <<<"
 fi 
 
 if [ $BLACKLIST_MODULES == "true" ]; then
