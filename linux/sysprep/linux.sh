@@ -22,6 +22,39 @@ echo "Enabling colored output"
 source <(curl -s https://raw.githubusercontent.com/hybridadmin/color-logger/master/lib/color_logger.sh) 
 ## Color logger
 
+### Start Distro Detection ###
+## http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_07_01.html
+if [[ -r /etc/redhat-release ]]; then
+	DISTRO=$(cat /etc/*release | grep -E "^(Cent|Fedo|Redh)" | awk '{print $1}' | head -n1 | tr '[A-Z]' '[a-z]')
+	RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)	
+	MINOR_VERSION=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -d "." -f 2)
+	MAINLINE_KERNEL="false"
+	EPEL_REPO="true"
+	REMI_REPO="true"
+	OPENLOGIC_REPO="false"
+    if [ $RELEASE -ge 8 ]; then
+        PKG_INSTALLER=$(which dnf)
+        REQUIRED_PKGS="grubby nano gdisk parted wget net-tools pam-devel openssl-devel tar"
+	else
+        PKG_INSTALLER=$(which yum)
+        REQUIRED_PKGS="grubby nano partx gdisk parted wget python-pyasn1 net-tools python python-devel pam-devel openssl-devel policycoreutils-python yum-utils yum-cron"
+    fi
+elif [[ -r /etc/issue ]] || [[ -f /etc/debian_version ]]; then
+	DISTRO=$(lsb_release -is | tr '[A-Z]' '[a-z]')
+	CODE_NAME=$(lsb_release -cs)
+	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)	
+	export DEBIAN_FRONTEND=noninteractive
+	UPDATE_MIRROR_LIST="false"
+	OPENLOGIC_REPO="false"
+	ENHANCED_SESSION_MODE="false"
+    PKG_INSTALLER=$(which apt)
+	REQUIRED_PKGS="gdisk parted wget aptitude git debconf-utils pwgen"
+else
+   echo "OS NOT DETECTED"
+fi
+### End Distro Detection ###
+
+### Start Functions ###
 function configure_ntp (){
 	NTP_CONFIG=$1
 	DISTRO=$2
@@ -71,37 +104,7 @@ function harden_ssh(){
     
     if [ $OS_NAME == "centos" ] && [ $OS_RELEASE -le 6 ]; then service $SVC_NAME restart; else systemctl restart $SVC_NAME; fi
 }
-
-### Start Distro Detection ###
-if [[ `which yum` ]]; then
-	DISTRO=$(cat /etc/*release | grep -E "^(Cent|Fedo|Redh)" | awk '{print $1}' | head -n1 | tr '[A-Z]' '[a-z]')
-	RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)	
-	MINOR_VERSION=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -d "." -f 2)
-	MAINLINE_KERNEL="false"
-	EPEL_REPO="true"
-	REMI_REPO="true"
-	OPENLOGIC_REPO="false"
-    if [ $RELEASE -ge 8 ]; then
-        PKG_INSTALLER=$(which dnf)
-        REQUIRED_PKGS="grubby nano partx gdisk parted wget net-tools pam-devel openssl-devel"
-	else
-        PKG_INSTALLER=$(which yum)
-        REQUIRED_PKGS="grubby nano partx gdisk parted wget python-pyasn1 net-tools python python-devel pam-devel openssl-devel policycoreutils-python yum-utils yum-cron"
-    fi
-elif [[ `which apt` ]]; then
-	DISTRO=$(lsb_release -is | tr '[A-Z]' '[a-z]')
-	CODE_NAME=$(lsb_release -cs)
-	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)
-	PKG_INSTALLER=$(which apt)
-	export DEBIAN_FRONTEND=noninteractive
-	UPDATE_MIRROR_LIST="false"
-	OPENLOGIC_REPO="false"
-	ENHANCED_SESSION_MODE="false"
-	REQUIRED_PKGS="gdisk parted wget aptitude git debconf-utils pwgen"
-else
-   echo "OS NOT DETECTED"
-fi
-### End Distro Detection ###
+### End Functions ###
 
 write-log "bright_cyan" ">>> BEGINNING SYSPREP <<<"
 #https://unix.stackexchange.com/questions/138744/inserting-a-line-in-a-file-only-if-this-line-isnt-yet-part-the-file
@@ -275,34 +278,38 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	fi
 	
 	## Regular firewall rules
-	if [ `iptables -L | grep -e "ACC.*" | grep -P "ssh|ntp|icmp"  | wc -l` -ge 4 ]; then
-		write-log "green" ">>> ssh|icmp|ntp rules already open in firewall <<<"
-	else
-		write-log "bright_blue" ">>> Applying ssh|icmp|ntp firewall rules <<<"
-		if [ $RELEASE -ge '7' ]; then
-			firewall-offline-cmd --zone=public --add-service=ssh 
-			firewall-offline-cmd --zone=public --add-service=ntp
-		else
-			iptables -A INPUT -p tcp --dport 22 -j ACCEPT
-			iptables -A OUTPUT -p tcp --dport 123 -j ACCEPT
-			iptables -A OUTPUT -p udp --dport 123 -j ACCEPT			
-			iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
-			iptables -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT
-		fi
-	fi
+    if [ $RELEASE -ge '7' ]; then
+        if [ $(printf -- '%s\n' `firewall-cmd --list-services` | grep -P "(ntp|ssh)" | wc -l) -lt 2 ]; then
+            write-log "bright_blue" ">>> Applying ssh|icmp|ntp firewall rules <<<"
+ 			firewall-offline-cmd --zone=public --add-service=ssh 
+			firewall-offline-cmd --zone=public --add-service=ntp       
+        else
+            write-log "green" ">>> ssh|icmp|ntp rules already open in firewall <<<"
+        fi    
+    else
+        if [ `iptables -L | grep -e "ACC.*" | grep -P "ssh|ntp|icmp"  | wc -l` -lt 4 ]; then
+            iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+            iptables -A OUTPUT -p tcp --dport 123 -j ACCEPT
+            iptables -A OUTPUT -p udp --dport 123 -j ACCEPT			
+            iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+            iptables -A OUTPUT -p icmp --icmp-type echo-reply -j ACCEPT        
+        else
+            write-log "green" ">>> ssh|icmp|ntp rules already open in firewall <<<"
+        fi
+    fi
 	
 	if [ $MAINLINE_KERNEL == 'true' ]; then 
 		rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 		
 		if [ $RELEASE == '8' ]; then
-			yum install 'https://www.elrepo.org/elrepo-release-8.0-2.el8.elrepo.noarch.rpm'
+			$PKG_INSTALLER install 'https://www.elrepo.org/elrepo-release-8.0-2.el8.elrepo.noarch.rpm'
 		elif [ $RELEASE == '7' ]; then 
-			yum install 'https://www.elrepo.org/elrepo-release-7.0-4.el7.elrepo.noarch.rpm'
+			$PKG_INSTALLER install 'https://www.elrepo.org/elrepo-release-7.0-4.el7.elrepo.noarch.rpm'
 		else
-			yum install 'https://www.elrepo.org/elrepo-release-6-9.el6.elrepo.noarch.rpm'
+			$PKG_INSTALLER install 'https://www.elrepo.org/elrepo-release-6-9.el6.elrepo.noarch.rpm'
 		fi
 		
-		yum --enablerepo=elrepo-kernel install kernel-ml
+		$PKG_INSTALLER --enablerepo=elrepo-kernel install kernel-ml
 		## https://www.thegeekdiary.com/centos-rhel-7-change-default-kernel-boot-with-old-kernel/
 		grub2-set-default 0
 		##grub2-mkconfig -o /boot/grub2/grub.cfg
