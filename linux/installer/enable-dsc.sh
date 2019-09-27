@@ -15,7 +15,8 @@ else
 	fi
 fi
 
-if [[ -r /etc/redhat-release ]]; then			
+if [[ -r /etc/redhat-release ]]; then
+	PKG_INSTALLER=$(which yum)
 	OSSL_VER=$( openssl version | cut -d ' ' -f 2 | sed 's/.$//' | tr -d '.')
 	cd /tmp	&& sudo $PKG_INSTALLER install -y -q python openssl unzip
 
@@ -49,6 +50,7 @@ if [[ -r /etc/redhat-release ]]; then
 else
 ### ubuntu			
 	# https://gist.github.com/lukechilds/a83e1d7127b78fef38c2914c4ececc3c
+	PKG_INSTALLER=$(which apt)
 	OSSL_VER=$( openssl version | cut -d ' ' -f 2 | sed 's/.$//' | tr -d '.')
 	cd /tmp && 	sudo $PKG_INSTALLER install -qqy python openssl unzip 
 
