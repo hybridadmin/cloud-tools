@@ -24,9 +24,9 @@ $PKI_TOOL pki --print --in ~/pki/cacerts/ca-server-cert.pem
 
 sleep 1
 echo -e "\ngenerating server keys ..."
-$PKI_TOOL pki --gen --type rsa --size 2048 --outform pem > ~/pki/private/vpn-server-key.pem
+$PKI_TOOL pki --gen --type rsa --size 4096 --outform pem > ~/pki/private/vpn-server-key.pem
 $PKI_TOOL pki --pub --in ~/pki/private/vpn-server-key.pem --type rsa | \
-	$PKI_TOOL pki --issue --lifetime 730 \
+	$PKI_TOOL pki --issue --lifetime 1825 \
 	--cacert ~/pki/cacerts/ca-server-cert.pem \
 	--cakey ~/pki/private/ca-server-key.pem \
 	--dn "C=CH, O=strongSwan, CN=strongSwan CA, CN=$CN" \
