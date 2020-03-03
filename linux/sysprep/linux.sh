@@ -190,8 +190,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	fi
 	
 	if [ $OPENLOGIC_REPO == 'true' ] && [ $DISTRO == 'centos' ]; then	
-		if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then rm -rf /etc/yum.repos.d/CentOS-Base.repo ; fi
-	
+		if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then rm -rf /etc/yum.repos.d/CentOS-Base.repo ; fi	
 		curl -o "/etc/yum.repos.d/CentOS-Base.repo" https://raw.githubusercontent.com/hybridadmin/centos-azure/master/config/repo/CentOS-${RELEASE}-Base.repo
 	fi
 
@@ -286,8 +285,8 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
     if [ $RELEASE -ge '7' ]; then
         if [ $(printf -- '%s\n' `firewall-cmd --list-services` | grep -P "(ntp|ssh)" | wc -l) -lt 2 ]; then
             write-log "bright_blue" ">>> Applying ssh|icmp|ntp firewall rules <<<"
- 			firewall-offline-cmd --zone=public --add-service=ssh 
-			firewall-offline-cmd --zone=public --add-service=ntp       
+            firewall-offline-cmd --zone=public --add-service=ssh 
+	    firewall-offline-cmd --zone=public --add-service=ntp       
         else
             write-log "green" ">>> ssh|icmp|ntp rules already open in firewall <<<"
         fi    
@@ -359,12 +358,12 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		write-log "green" ">>> No Old Installed Kernels to remove. Skipping  <<<"
 	else
 		write-log "bright_blue" ">>> Removing Old Kernels <<<"
-        sudo $PKG_INSTALLER list --showduplicates kernel
-        if [ $RELEASE -ge '8' ]; then
-            sudo $PKG_INSTALLER remove $(dnf repoquery --installonly --latest-limit=-2 -q)
-        else		
-            package-cleanup --oldkernels --count=2
-        fi
+        	sudo $PKG_INSTALLER list --showduplicates kernel
+        	if [ $RELEASE -ge '8' ]; then
+            		sudo $PKG_INSTALLER remove $(dnf repoquery --installonly --latest-limit=-2 -q)
+        	else		
+            		package-cleanup --oldkernels --count=2
+        	fi
 	fi
 	
 	if $PKG_INSTALLER list installed | grep "kexec-tools"  >/dev/null 2>&1; then
@@ -384,10 +383,10 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 			GRUB_CONFIGS=("/etc/grub.conf" "/boot/efi/EFI/redhat/grub.conf" "/boot/efi/EFI/BOOT/BOOTX64.CONF" "/boot/grub/grub.conf")
 		        for i in  "${GRUB_CONFIGS[@]}"; do
 		            if [ -f $i ]; then
-		               write-log "bright_blue" ">>> $i exists. applying new Kernel paramters <<<"
-						sed -i '/hiddenmenu\|splashimage/d' $i
-						sed -i -e 's/rhgb quiet/video=hyperv_fb:1024x768 elevator=noop numa=off/g' $i
-						sed -i -e 's/crashkernel=auto/crashkernel=0M-2G:128M,2G-6G:256M,6G-8G:512M,8G-:768M/g' $i
+	    	               write-log "bright_blue" ">>> $i exists. applying new Kernel paramters <<<"
+				sed -i '/hiddenmenu\|splashimage/d' $i
+				sed -i -e 's/rhgb quiet/video=hyperv_fb:1024x768 elevator=noop numa=off/g' $i
+				sed -i -e 's/crashkernel=auto/crashkernel=0M-2G:128M,2G-6G:256M,6G-8G:512M,8G-:768M/g' $i
 		            fi
 		        done
 			if [ -f /boot/efi/EFI/grub/grub.cfg ]; then
@@ -772,8 +771,8 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		write-log "green" ">>> Iptables Persistent rules Active <<<"
 	else
 		write-log "bright_blue" ">>> Enabling Iptables Persistent rules <<<"
-        echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
-        echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
+        	echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections
+        	echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections
 		sudo apt install -qqy iptables-persistent
 		sudo service netfilter-persistent start && 	sudo invoke-rc.d netfilter-persistent save
 	fi	
