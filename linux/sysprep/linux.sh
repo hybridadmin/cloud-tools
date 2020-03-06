@@ -595,7 +595,8 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
         sed -i "s/#NTP=.*/NTP=za.pool.ntp.org/g" /etc/systemd/timesyncd.conf
     fi
 
-	if [ $MAINLINE_KERNEL == 'true' ]; then 
+	if [ $MAINLINE_KERNEL == 'true' ]; then
+		## https://github.com/pimlie/ubuntu-mainline-kernel.sh
 		write-log "bright_blue" ">>> Installing latest mainline kernel <<<"	
 		curl https://raw.githubusercontent.com/pimlie/ubuntu-mainline-kernel.sh/master/ubuntu-mainline-kernel.sh | bash -s --yes
 	fi
