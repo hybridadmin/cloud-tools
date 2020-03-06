@@ -44,6 +44,7 @@ elif [[ -r /etc/issue ]] || [[ -f /etc/debian_version ]]; then
 	CODE_NAME=$(lsb_release -cs)
 	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)	
 	export DEBIAN_FRONTEND=noninteractive
+	MAINLINE_KERNEL="false"
 	UPDATE_MIRROR_LIST="false"
 	OPENLOGIC_REPO="false"
 	ENHANCED_SESSION_MODE="false"
@@ -593,6 +594,11 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
         write-log "bright_blue" ">>> Configuring timesyncd service <<<"	
         sed -i "s/#NTP=.*/NTP=za.pool.ntp.org/g" /etc/systemd/timesyncd.conf
     fi
+
+	if [ $MAINLINE_KERNEL == 'true' ]; then 
+		write-log "bright_blue" ">>> Installing latest mainline kernel <<<"	
+		curl https://raw.githubusercontent.com/pimlie/ubuntu-mainline-kernel.sh/master/ubuntu-mainline-kernel.sh | bash -s --yes
+	fi
 
 	if [ $DISTRO == 'ubuntu' ]; then
 		if dpkg -l | grep -P "(linux-azure*|linux-generic-lts-trusty)" >/dev/null 2>&1; then
