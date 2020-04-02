@@ -506,7 +506,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		sudo $PKG_INSTALLER upgrade -qqy 
 	fi
 
-	if [ $CODE_NAME == 'bionic' ]; then
+	if [ $RELEASE -ge 18 ]; then
 		write-log "bright_yellow" ">>> Installing yq[YAML editing tool] package <<<"
 		snap install yq
 	fi
@@ -687,7 +687,8 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 			UPDATE_KERNEL_MODULES="true"
 		fi
 		
-		if [ $CODE_NAME == 'bionic' ]; then
+		#if [ $CODE_NAME == 'bionic' ]; then
+		if [ $RELEASE -ge 18 ]; then
 			if  cat /etc/default/grub | grep -E "GRUB_.+_TIMEOUT" >/dev/null 2>&1 ; then
 				sed -i -e 's/GRUB_RECORDFAIL_TIMEOUT=.*/GRUB_RECORDFAIL_TIMEOUT=5/' /etc/default/grub
 			else 
@@ -698,7 +699,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		GRUB_UPDATE="true"
 	fi
 
-	if [ $CODE_NAME == 'bionic' ] && [ $ENHANCED_SESSION_MODE == "true" ] ; then
+	if [ $RELEASE -ge 18 ] && [ $ENHANCED_SESSION_MODE == "true" ] ; then
 		write-log "bright_yellow" ">>> Enabling Enhanced Mode for Hyper-V <<<"
 		#https://github.com/Microsoft/linux-vm-tools/tree/master/ubuntu/16.04
 		sudo $PKG_INSTALLER install -qqy xrdp 
@@ -802,7 +803,8 @@ if [ $CLOUD_PART_TOOLS == 'true' ]; then
 			sudo $PKG_INSTALLER -y -q install xfsprogs
 		fi
 	else
-		if [ `lsb_release -cs` != 'bionic' ]; then
+		#if [ `lsb_release -cs` != 'bionic' ]; then
+		if [[ $(lsb_release -rs | cut -d '.' -f1) -ge 18 ]]; then
 			write-log "bright_yellow" ">>> Installing Cloud Utils package [cloud-guest-utils ] <<<"
 			sudo $PKG_INSTALLER -qqy install cloud-guest-utils
 		fi
