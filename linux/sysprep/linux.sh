@@ -774,7 +774,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	fi 
 	
 	# Iptables Persistent rules - https://gist.github.com/alonisser/a2c19f5362c2091ac1e7
-	if [ `service netfilter-persistent status | tail -n 1 | cut -d ' ' -f6` == 'Started' ]; then 
+	if [[ `service netfilter-persistent status | tail -n 1 | cut -d ' ' -f6` == 'Started' ]]; then 
 		write-log "green" ">>> Iptables Persistent rules Active <<<"
 	else
 		write-log "bright_blue" ">>> Enabling Iptables Persistent rules <<<"
