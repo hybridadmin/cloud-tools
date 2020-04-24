@@ -9,7 +9,7 @@
 CURRENT_SCRIPT="$0"
 
 ##variables
-COUNTRY_CODE=$(curl -s ipinfo.io | grep "country" | cut -d '"' -f4)
+COUNTRY_CODE=$(curl -s ipinfo.io | grep "country" | cut -d '"' -f4 | tr '[:upper:]' '[:lower:]')
 ADD_POWERSHELL_DSC="false"
 HOLD_KERNEL_UPDATES="false"
 PREP_FOR_AZURE="false"
