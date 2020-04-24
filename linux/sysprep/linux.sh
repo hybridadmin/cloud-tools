@@ -15,7 +15,8 @@ HOLD_KERNEL_UPDATES="false"
 PREP_FOR_AZURE="false"
 BLACKLIST_MODULES="false"
 CLOUD_PART_TOOLS="false"
-ALLOWED_SOURCES=("196.220.32.0/24" "41.185.11.0/24")
+#ALLOWED_SOURCES=("X.X.X.0/24" "X.X.X.0/24")
+read -p 'IP address or ranges allowed to connect remotely: ' ALLOWED_SOURCES
 
 ## Color logger
 echo "Enabling colored output"    
