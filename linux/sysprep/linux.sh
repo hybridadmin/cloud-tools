@@ -63,7 +63,7 @@ function configure_ntp (){
 	if [ $DISTRO == "centos" ]; then NTP_SERVICE="ntpd"; else NTP_SERVICE="ntp"; fi
 	
 	cp ${NTP_CONFIG} "${NTP_CONFIG}.orig"
-	sed -i "s/${DISTRO}/za/g" ${NTP_CONFIG}
+	sed -i "s/${DISTRO}/${COUNTRY_CODE}/g" ${NTP_CONFIG}
 	
 	systemctl enable chronyd && systemctl restart chronyd
 	chronyc sources
@@ -592,7 +592,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
         fi
     else
         write-log "bright_blue" ">>> Configuring timesyncd service <<<"	
-        sed -i "s/#NTP=.*/NTP=za.pool.ntp.org/g" /etc/systemd/timesyncd.conf
+        sed -i "s/#NTP=.*/NTP=${COUNTRY_CODE}.pool.ntp.org/g" /etc/systemd/timesyncd.conf
     fi
 
 	if [ $MAINLINE_KERNEL == 'true' ]; then
