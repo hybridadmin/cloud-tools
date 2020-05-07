@@ -1,6 +1,9 @@
 #!/bin/bash
 
-# Disk partitions: 512MB =/boot, 256MB = EFI ESP , Rest = /
+# Disk partitions: 
+# 512MB = /boot
+# 256MB = /boot/efi (EFI ESP) 
+# Rest = /
 # VG = ubuntu-vg / LV = root
 # New-VHD -Path "E:\Hyper-V\TEST992\VPS_Ubuntu_16.04_x64_Gen2.vhdx" -SizeBytes 10GB -Dynamic -BlockSizeBytes 1MB
 
@@ -57,7 +60,7 @@ fi
 ### End Distro Detection ###
 
 ### Start Functions ###
-function configure_ntp (){
+function configure_timesource (){
 	NTP_CONFIG=$1
 	DISTRO=$2
 	
@@ -222,7 +225,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
     TIME_CONF="/etc/chrony.conf"
 	if cat "${TIME_CONF}" | grep -P "centos|redhat" >/dev/null 2>&1; then
 		write-log "bright_blue" ">>> Configuring NTP service <<<"		
-		configure_ntp "${TIME_CONF}" "${DISTRO}"
+		configure_timesource "${TIME_CONF}" "${DISTRO}"
 	else
 		write-log "green" ">>> NTP service already configured <<<"
 	fi 
@@ -587,7 +590,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
         TIME_CONF="/etc/chrony.conf"
         if cat "${TIME_CONF}" | grep "ubuntu|debian" >/dev/null 2>&1; then
             write-log "bright_blue" ">>> Configuring NTP service <<<"				
-            configure_ntp "${TIME_CONF}" "${DISTRO}"
+            configure_timesource "${TIME_CONF}" "${DISTRO}"
         else
             write-log "green" ">>> NTP service already configured <<<"
         fi
