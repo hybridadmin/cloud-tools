@@ -666,9 +666,10 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		if [ $CODE_NAME == 'precise' ]; then
 			write-log "bright_yellow" ">>> Gen 2 vm fix for UEFI boot not required. Distro is runnning in BIOS Mode <<<"
 		else
-			if [ ! -f /boot/efi/EFI/boot/bootx64.efi ]; then
+			if [ $RELEASE -lt 18 ]; then BOOT_FOLDER="boot" ; else BOOT_FOLDER="BOOT" ; fi
+			if [ ! -f /boot/efi/EFI/${BOOT_FOLDER}/bootx64.efi ]; then
 				write-log "bright_blue" ">>> Applying UEFI Boot fix for Generation 2 Virtual Machines <<<"
-				cd /boot/efi/EFI && sudo cp -r ubuntu/ boot
+				cd /boot/efi/EFI && sudo cp -R ubuntu/ ${BOOT_FOLDER}
 				cd boot && sudo mv shimx64.efi bootx64.efi
 			else
 				write-log "green" ">>> UEFI Boot fix for Generation 2 Virtual Machines already applied <<<"
