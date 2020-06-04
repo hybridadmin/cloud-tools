@@ -686,7 +686,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		sed -i -e 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=5/' /etc/default/grub
 		sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT=/GRUB_CMDLINE_LINUX_DEFAULT="video=hyperv_fb:1024x768 elevator=noop numa=off"/g' /etc/default/grub
 		
-		if [ $RELEASE -eq 12 ] || [ $DISTRO == 'debian' ]; then
+		if [ $RELEASE -eq 12 -a $DISTRO == 'ubuntu' ] || [ "$DISTRO" == 'debian' ]; then
 			sed -i -e 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="crashkernel=0M-2G:128M,2G-6G:256M,6G-8G:512M,8G-:768M"/g' /etc/default/grub
 		else 
 			sed -i -e 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="crashkernel=0M-2G:128M,2G-6G:256M,6G-8G:512M,8G-:768M zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=50"/g' /etc/default/grub
@@ -741,7 +741,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		fi
 	fi
 	
-	if [ $RELEASE -eq 12 ] || [ $DISTRO == 'debian' ]; then
+	if [ $RELEASE -eq 12 -a $DISTRO == 'ubuntu' ] || [ "$DISTRO" == 'debian' ]; then
 		if dpkg -l | grep -P "(kdump-tools)" >/dev/null 2>&1; then 
 			write-log "green" ">>> kdump-tools Package already installed <<<"
 		else
