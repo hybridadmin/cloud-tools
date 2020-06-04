@@ -504,7 +504,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	write-log "bright_yellow" ">>> Updating APT cache <<<"
 	sudo $PKG_INSTALLER update -qqy
 	write-log "bright_yellow" ">>> Updating System <<<"
-	if [ $CODE_NAME == 'precise' ]; then
+	if [ $RELEASE -eq 12 ]; then
 		sudo $PKG_INSTALLER DISTRO-upgrade -qqy 
 	else
 		sudo $PKG_INSTALLER upgrade -qqy 
@@ -609,7 +609,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		if dpkg -l | grep -P "(linux-azure*|linux-generic-lts-trusty)" >/dev/null 2>&1; then
 			write-log "green" ">>> Azure-tuned kernel already installed. Skipping <<<"		
 		else
-			if [ $CODE_NAME == 'precise' ]; then
+			if [ $RELEASE -eq 12 ]; then
 				write-log "bright_blue" ">>> Starting Generic HWE kernel installation <<<"
 				sudo $PKG_INSTALLER install -qqy linux-generic-lts-trusty 
 			else
@@ -618,7 +618,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 			fi
 		fi
 		
-		if [ $CODE_NAME == 'precise' ]; then 
+		if [ $RELEASE -eq 12 ]; then
 			if  dpkg -l | grep -P "(linux\-(tools|cloud-tools)\-virtual-lts-*|linux-(tools|cloud-tools)-*|hv-kvp-daemon-*)"	>/dev/null 2>&1; then
 				write-log "green" ">>> Hyper-V KVP daemons already installed <<<"
 			else
@@ -663,7 +663,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	fi
 		
 	if [ $DISTRO == 'ubuntu' ]; then
-		if [ $CODE_NAME == 'precise' ]; then
+		if [ $RELEASE -eq 12 ]; then
 			write-log "bright_yellow" ">>> Gen 2 vm fix for UEFI boot not required. Distro is runnning in BIOS Mode <<<"
 		else
 			if [ $RELEASE -lt 18 ]; then BOOT_FOLDER="boot" ; else BOOT_FOLDER="BOOT" ; fi
@@ -686,14 +686,13 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		sed -i -e 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=5/' /etc/default/grub
 		sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT=/GRUB_CMDLINE_LINUX_DEFAULT="video=hyperv_fb:1024x768 elevator=noop numa=off"/g' /etc/default/grub
 		
-		if [ $CODE_NAME == 'precise' ] || [ $DISTRO == 'debian' ]; then
+		if [ $RELEASE -eq 12 ] || [ $DISTRO == 'debian' ]; then
 			sed -i -e 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="crashkernel=0M-2G:128M,2G-6G:256M,6G-8G:512M,8G-:768M"/g' /etc/default/grub
 		else 
 			sed -i -e 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="crashkernel=0M-2G:128M,2G-6G:256M,6G-8G:512M,8G-:768M zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=50"/g' /etc/default/grub
 			UPDATE_KERNEL_MODULES="true"
 		fi
-		
-		#if [ $CODE_NAME == 'bionic' ]; then
+
 		if [ $RELEASE -ge 18 ]; then
 			if  cat /etc/default/grub | grep -E "GRUB_.+_TIMEOUT" >/dev/null 2>&1 ; then
 				sed -i -e 's/GRUB_RECORDFAIL_TIMEOUT=.*/GRUB_RECORDFAIL_TIMEOUT=5/' /etc/default/grub
@@ -742,7 +741,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		fi
 	fi
 	
-	if [ $CODE_NAME == 'precise' ] || [ $DISTRO == 'debian' ]; then
+	if [ $RELEASE -eq 12 ] || [ $DISTRO == 'debian' ]; then
 		if dpkg -l | grep -P "(kdump-tools)" >/dev/null 2>&1; then 
 			write-log "green" ">>> kdump-tools Package already installed <<<"
 		else
