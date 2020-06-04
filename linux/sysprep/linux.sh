@@ -682,6 +682,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	else
 		write-log "bright_blue" ">>> Setting Kernel Parameters ... <<<"
 		#https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-create-upload-ubuntu/
+		sed -i -e 's/GRUB_TIMEOUT_STYLE=.*/GRUB_TIMEOUT_STYLE=menu/' /etc/default/grub
 		sed -i -e 's/GRUB_TIMEOUT=.*/GRUB_TIMEOUT=5/' /etc/default/grub
 		sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT=/GRUB_CMDLINE_LINUX_DEFAULT="video=hyperv_fb:1024x768 elevator=noop numa=off"/g' /etc/default/grub
 		
