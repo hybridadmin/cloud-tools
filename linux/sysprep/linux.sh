@@ -48,7 +48,7 @@ elif [[ -r /etc/issue ]] || [[ -f /etc/debian_version ]]; then
 	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)	
 	export DEBIAN_FRONTEND=noninteractive
 	MAINLINE_KERNEL="false"
-	UPDATE_MIRROR_LIST="false"
+	UPDATE_MIRROR_LIST="true"
 	OPENLOGIC_REPO="false"
 	ENHANCED_SESSION_MODE="false"
     	PKG_INSTALLER=$(which apt)
@@ -489,14 +489,19 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 			# Debian
 			if [ $OPENLOGIC_REPO == 'true' ]; then DEB_MIRROR="debian-archive.trafficmanager.net"; else DEB_MIRROR="ftp.is.co.za"; fi
 			truncate -s 0 /etc/apt/sources.list
-			echo "deb http://${DEB_MIRROR}/debian ${CODE_NAME}-updates main" >> /etc/apt/sources.list
-			echo "deb-src http://${DEB_MIRROR}/debian ${CODE_NAME}-updates main" >> /etc/apt/sources.list
-			echo "deb http://${DEB_MIRROR}/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list
-			echo "deb-src http://${DEB_MIRROR}/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list			
+            		echo "deb http://deb.debian.org/debian/ stable main contrib non-free" >> /etc/apt/sources.list
+            		echo "deb-src http://deb.debian.org/debian/ stable main contrib non-free\n" >> /etc/apt/sources.list
+            		echo "deb http://deb.debian.org/debian/ stable-updates main contrib non-free" >> /etc/apt/sources.list
+            		echo "deb-src http://deb.debian.org/debian/ stable-updates main contrib non-free\n" >> /etc/apt/sources.list
+            		echo "deb http://deb.debian.org/debian-security stable/updates main" >> /etc/apt/sources.list
+            		echo "deb-src http://deb.debian.org/debian-security stable/updates main\n" >> /etc/apt/sources.list
+            		echo "deb http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list
+            		echo "deb-src http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list			
 		else
+			write-log "green" ">>> Skipping Mirror List Update for ${DISTRO} <<<"
 			# Ubuntu 
-			MIRROR=$(curl -s http://mirrors.ubuntu.com/mirrors.txt | head -n1 | rev | cut -c 2- | rev)
-			sed -i -e "s#http://archive.ubuntu.com/ubuntu/#${MIRROR}\/#g" /etc/apt/sources.list
+			#MIRROR=$(curl -s http://mirrors.ubuntu.com/mirrors.txt | head -n1 | rev | cut -c 2- | rev)
+			#sed -i -e "s#http://archive.ubuntu.com/ubuntu/#${MIRROR}\/#g" /etc/apt/sources.list
 		fi
 	fi
 
