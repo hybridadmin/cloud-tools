@@ -52,7 +52,7 @@ elif [[ -r /etc/issue ]] || [[ -f /etc/debian_version ]]; then
 	OPENLOGIC_REPO="false"
 	ENHANCED_SESSION_MODE="false"
     	PKG_INSTALLER=$(which apt)
-	REQUIRED_PKGS="gdisk parted wget aptitude git pwgen"
+	REQUIRED_PKGS="sudo gdisk parted wget aptitude git pwgen"
 else
    echo "OS NOT DETECTED"
 fi
@@ -489,14 +489,14 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 			# Debian
 			if [ $OPENLOGIC_REPO == 'true' ]; then DEB_MIRROR="debian-archive.trafficmanager.net"; else DEB_MIRROR="ftp.is.co.za"; fi
 			truncate -s 0 /etc/apt/sources.list
-            		echo "deb http://deb.debian.org/debian/ stable main contrib non-free" >> /etc/apt/sources.list
-            		echo "deb-src http://deb.debian.org/debian/ stable main contrib non-free\n" >> /etc/apt/sources.list
-            		echo "deb http://deb.debian.org/debian/ stable-updates main contrib non-free" >> /etc/apt/sources.list
-            		echo "deb-src http://deb.debian.org/debian/ stable-updates main contrib non-free\n" >> /etc/apt/sources.list
-            		echo "deb http://deb.debian.org/debian-security stable/updates main" >> /etc/apt/sources.list
-            		echo "deb-src http://deb.debian.org/debian-security stable/updates main\n" >> /etc/apt/sources.list
-            		echo "deb http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list
-            		echo "deb-src http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list			
+            		echo -e "deb http://deb.debian.org/debian/ stable main contrib non-free" >> /etc/apt/sources.list
+            		echo -e "deb-src http://deb.debian.org/debian/ stable main contrib non-free\n" >> /etc/apt/sources.list
+            		echo -e "deb http://deb.debian.org/debian/ stable-updates main contrib non-free" >> /etc/apt/sources.list
+            		echo -e "deb-src http://deb.debian.org/debian/ stable-updates main contrib non-free\n" >> /etc/apt/sources.list
+            		echo -e "deb http://deb.debian.org/debian-security stable/updates main" >> /etc/apt/sources.list
+            		echo -e "deb-src http://deb.debian.org/debian-security stable/updates main\n" >> /etc/apt/sources.list
+            		echo -e "deb http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list
+            		echo -e "deb-src http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list			
 		else
 			write-log "green" ">>> Skipping Mirror List Update for ${DISTRO} <<<"
 			# Ubuntu 
