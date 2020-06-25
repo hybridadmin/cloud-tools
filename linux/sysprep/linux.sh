@@ -138,7 +138,7 @@ if [ $(df -h | grep "efi" | wc -l) -ge 1 ]; then
 		#https://noobient.com/2017/09/27/fixing-the-efi-bootloader-on-centos-7/
 	    	#https://bugs.centos.org/view.php?id=15522
 	    	if [ $RELEASE -ge '7' ] && [ $MINOR_VERSION == '6' ]; then
-	    	write-log "green" ">>> Fix for ${DISTRO} running UEFI mode is not required. Skipping ... <<<"
+	    		write-log "green" ">>> Fix for ${DISTRO} running UEFI mode is not required. Skipping ... <<<"
 	    	else		
 	    		if [ ! -f /boot/efi/EFI/BOOT/grubx64.efi ]; then
 	    			write-log "bright_blue" ">>> Applying fix for ${DISTRO} running in UEFI mode <<<"
