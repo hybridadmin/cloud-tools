@@ -51,8 +51,8 @@ elif [[ -r /etc/issue ]] || [[ -f /etc/debian_version ]]; then
 	UPDATE_MIRROR_LIST="false"
 	OPENLOGIC_REPO="false"
 	ENHANCED_SESSION_MODE="false"
-    PKG_INSTALLER=$(which apt)
-	REQUIRED_PKGS="gdisk parted wget aptitude git debconf-utils pwgen"
+    	PKG_INSTALLER=$(which apt)
+	REQUIRED_PKGS="gdisk parted wget aptitude git pwgen"
 else
    echo "OS NOT DETECTED"
 fi
@@ -500,6 +500,12 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		fi
 	fi
 
+	if [[ $DISTRO == 'debian' ]]; then
+		$PKG_INSTALLER install -qqy sudo curl debconf-i18n
+	else
+		$PKG_INSTALLER install -qqy debconf-utils
+	fi
+
 	write-log "bright_yellow" ">>> Updating APT cache <<<"
 	sudo $PKG_INSTALLER update -qqy
 	write-log "bright_yellow" ">>> Updating System <<<"
@@ -507,7 +513,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		sudo $PKG_INSTALLER DISTRO-upgrade -qqy 
 	else
 		sudo $PKG_INSTALLER upgrade -qqy 
-	fi
+	fi	
 
 	if [ $RELEASE -ge 18 ]; then
 		write-log "bright_yellow" ">>> Installing yq[YAML editing tool] package <<<"
