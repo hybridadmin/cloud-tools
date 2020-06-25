@@ -132,6 +132,34 @@ else
 	#sysctl -p	
 fi
 
+### UEFI boot fix ### 
+if [ $(df -h | grep "efi" | wc -l) -ge 1 ]; then
+	if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
+	    #https://noobient.com/2017/09/27/fixing-the-efi-bootloader-on-centos-7/
+	    #https://bugs.centos.org/view.php?id=15522
+	    if [ $RELEASE -ge '7' ] && [ $MINOR_VERSION == '6' ]; then
+	    	write-log "green" ">>> Fix for ${DISTRO} running UEFI mode is not required. Skipping ... <<<"
+	    else		
+	    	if [ ! -f /boot/efi/EFI/BOOT/grubx64.efi ]; then
+	    		write-log "bright_blue" ">>> Applying fix for ${DISTRO} running in UEFI mode <<<"
+	    		cp /boot/efi/EFI/centos/grub* /boot/efi/EFI/BOOT 
+	    		cp -r /boot/efi/EFI/centos/fonts /boot/efi/EFI/BOOT 
+	    	fi
+	    fi
+    else
+           if [ $RELEASE -lt 18 ]; then BOOT_FOLDER="boot" ; else BOOT_FOLDER="BOOT" ; fi
+	    if [ ! -f /boot/efi/EFI/${BOOT_FOLDER}/bootx64.efi ]; then
+	    	write-log "bright_blue" ">>> Applying fix for ${DISTRO} running in UEFI mode <<<"
+	    	cd /boot/efi/EFI && sudo cp -R ${DISTRO}/ ${BOOT_FOLDER}
+	    	cd ${BOOT_FOLDER} && sudo mv shimx64.efi bootx64.efi
+	    else
+	    	write-log "green" ">>> Fix for ${DISTRO} running UEFI mode is already applied <<<"
+	    fi
+    fi
+else
+	write-log "bright_yellow" ">>> ${DISTRO} is runnning in BIOS Mode, Skipping <<<"
+fi
+
 if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
     # https://docs.microsoft.com/en-us/azure/virtual-machines/linux/create-upload-centos	
 	write-log "bright_blue" ">>> DETECTED DISTRO: $DISTRO - RELEASE: ${RELEASE} <<<"
@@ -433,20 +461,6 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 			semodule -s targeted -i hyperv-daemons.pp
 		fi 	
 	fi	
-
-	if [ $RELEASE -ge '7' ]; then
-		#https://noobient.com/2017/09/27/fixing-the-efi-bootloader-on-centos-7/
-		#https://bugs.centos.org/view.php?id=15522
-		if [ $MINOR_VERSION == '6' ]; then
-			write-log "green" ">>> Fix for ${DISTRO} running UEFI mode is not required. Skipping ... <<<"
-		else		
-			if [ ! -f /boot/efi/EFI/BOOT/grubx64.efi ]; then
-				write-log "bright_blue" ">>> Applying fix for ${DISTRO} running in UEFI mode <<<"
-				cp /boot/efi/EFI/centos/grub* /boot/efi/EFI/BOOT 
-				cp -r /boot/efi/EFI/centos/fonts /boot/efi/EFI/BOOT 
-			fi
-		fi		
-	fi	
 	
 	if [ ! -f /etc/udev/rules.d/100-balloon.rules ]; then
 	    	write-log "bright_yellow" ">>> Creating file /etc/udev/rules.d/100-balloon.rules and enabling Hyper-V Hot-Add Support <<<"
@@ -679,20 +693,6 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		fi
 	fi
 	
-	## UEFI boot Fix 
-	if [ $(df -h | grep "efi" | wc -l) -ge 1 ]; then
-		if [ $RELEASE -lt 18 ]; then BOOT_FOLDER="boot" ; else BOOT_FOLDER="BOOT" ; fi
-		if [ ! -f /boot/efi/EFI/${BOOT_FOLDER}/bootx64.efi ]; then
-			write-log "bright_blue" ">>> Applying fix for ${DISTRO} running in UEFI mode <<<"
-			cd /boot/efi/EFI && sudo cp -R ${DISTRO}/ ${BOOT_FOLDER}
-			cd ${BOOT_FOLDER} && sudo mv shimx64.efi bootx64.efi
-		else
-			write-log "green" ">>> Fix for ${DISTRO} running UEFI mode is already applied <<<"
-		fi
-	else
-		write-log "bright_yellow" ">>> ${DISTRO} is runnning in BIOS Mode, Skipping <<<"
-	fi
-
 	if  cat /proc/cmdline | grep "noop" >/dev/null 2>&1 ; then
 		write-log "green" ">>> Kernel Parameters already set... Skipping <<<"
 	else
