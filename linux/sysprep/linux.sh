@@ -21,7 +21,6 @@ CLOUD_PART_TOOLS="false"
 read -p 'IP address or ranges allowed to connect remotely: ' ALLOWED_SOURCES
 
 ## Color logger
-echo "Enabling colored output"    
 source <(curl -s https://raw.githubusercontent.com/hybridadmin/color-logger/master/lib/color_logger.sh) 
 ## Color logger
 
