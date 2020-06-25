@@ -672,8 +672,8 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		fi
 	fi
 		
-	if [ $DISTRO == 'ubuntu' ]; then
-		if [ $RELEASE -eq 12 ]; then
+	if [ $DISTRO == 'ubuntu' -o $DISTRO == 'debian' ]; then
+		if [ $DISTRO == 'ubuntu' ] && [ $RELEASE -eq 12 ]; then
 			write-log "bright_yellow" ">>> Gen 2 vm fix for UEFI boot not required. Distro is runnning in BIOS Mode <<<"
 		else
 			if [ $RELEASE -lt 18 ]; then BOOT_FOLDER="boot" ; else BOOT_FOLDER="BOOT" ; fi
