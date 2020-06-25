@@ -61,9 +61,7 @@ fi
 ### Start Functions ###
 function configure_timesource (){
 	NTP_CONFIG=$1
-	DISTRO=$2
-	
-	if [ $DISTRO == "centos" ]; then NTP_SERVICE="ntpd"; else NTP_SERVICE="ntp"; fi
+	DISTRO=$2	
 	
 	cp ${NTP_CONFIG} "${NTP_CONFIG}.orig"
 	sed -i "s/${DISTRO}/${COUNTRY_CODE}/g" ${NTP_CONFIG}
@@ -217,11 +215,11 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		write-log "bright_blue" ">>> NTP service installed <<<"
 	else			
 		write-log "bright_blue" ">>> Installing NTP service <<<"
-        systemctl stop ntpd && systemctl disable ntpd && systemctl mask ntpd
+        	systemctl stop ntpd && systemctl disable ntpd && systemctl mask ntpd
 		sudo $PKG_INSTALLER install -y -q chrony
 	fi
 	
-    TIME_CONF="/etc/chrony.conf"
+    	TIME_CONF="/etc/chrony.conf"
 	if cat "${TIME_CONF}" | grep -P "centos|redhat" >/dev/null 2>&1; then
 		write-log "bright_blue" ">>> Configuring NTP service <<<"		
 		configure_timesource "${TIME_CONF}" "${DISTRO}"
