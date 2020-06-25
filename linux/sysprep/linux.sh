@@ -597,7 +597,13 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
             sudo $PKG_INSTALLER install -qqy chrony				
         fi
         
-        TIME_CONF="/etc/chrony.conf"
+        #TIME_CONF="/etc/chrony.conf"
+	if [ $DISTRO == 'ubuntu' ]; then 
+		TIME_CONF="/etc/chrony.conf"
+	else
+		TIME_CONF="/etc/chrony/chrony.conf"
+	fi
+		
         if cat "${TIME_CONF}" | grep "ubuntu|debian" >/dev/null 2>&1; then
             write-log "bright_blue" ">>> Configuring NTP service <<<"				
             configure_timesource "${TIME_CONF}" "${DISTRO}"
