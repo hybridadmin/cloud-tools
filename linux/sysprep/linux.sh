@@ -680,7 +680,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 			if [ ! -f /boot/efi/EFI/${BOOT_FOLDER}/bootx64.efi ]; then
 				write-log "bright_blue" ">>> Applying UEFI Boot fix for Generation 2 Virtual Machines <<<"
 				cd /boot/efi/EFI && sudo cp -R ubuntu/ ${BOOT_FOLDER}
-				cd boot && sudo mv shimx64.efi bootx64.efi
+				cd ${BOOT_FOLDER} && sudo mv shimx64.efi bootx64.efi
 			else
 				write-log "green" ">>> UEFI Boot fix for Generation 2 Virtual Machines already applied <<<"
 			fi
