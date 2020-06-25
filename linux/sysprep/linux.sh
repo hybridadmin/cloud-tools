@@ -17,7 +17,7 @@ HOLD_KERNEL_UPDATES="false"
 PREP_FOR_AZURE="false"
 BLACKLIST_MODULES="false"
 CLOUD_PART_TOOLS="false"
-#ALLOWED_SOURCES=("X.X.X.0/24" "X.X.X.0/24")
+
 read -p 'IP address or ranges allowed to connect remotely: ' ALLOWED_SOURCES
 
 ## Color logger
@@ -26,7 +26,6 @@ source <(curl -s https://raw.githubusercontent.com/hybridadmin/color-logger/mast
 ## Color logger
 
 ### Start Distro Detection ###
-## http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_07_01.html
 if [[ -r /etc/redhat-release ]]; then
 	DISTRO=$(cat /etc/*release | grep -E "^(Cent|Fedo|Redh)" | awk '{print $1}' | head -n1 | tr '[A-Z]' '[a-z]')
 	RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)	
@@ -75,7 +74,6 @@ function harden_ssh(){
     OS_RELEASE=$2
     # https://www.sshaudit.com/hardening_guides.html
     # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/pdf/security_hardening/Red_Hat_Enterprise_Linux-8-Security_hardening-en-US.pdf
-    # SSH Hardening Centos 6: KexAlgorithms diffie-hellman-group-exchange-sha256 // MACs hmac-sha2-256,hmac-sha2-512 //Ciphers aes128-ctr,aes192-ctr,aes256-ctr
     cp /etc/ssh/sshd_config /etc/ssh/sshd_config.old
     if [ $OS_NAME == "ubuntu" ]; then
         if [ $OS_RELEASE -le 16 ]; then KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256"; else KEXALGS="curve25519-sha256@libssh.org,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group-exchange-sha256"; fi
