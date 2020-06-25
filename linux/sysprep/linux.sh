@@ -487,14 +487,15 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		
 		if [[ $DISTRO == 'debian' ]]; then 
 			# Debian
+			if [ $CODE_NAME == 'buster' ];then RELEASE_TYPE='stable'; else RELEASE_TYPE='oldstable'; fi
 			if [ $OPENLOGIC_REPO == 'true' ]; then DEB_MIRROR="debian-archive.trafficmanager.net"; else DEB_MIRROR="ftp.is.co.za"; fi
 			truncate -s 0 /etc/apt/sources.list
-            		echo -e "deb http://deb.debian.org/debian/ stable main contrib non-free" >> /etc/apt/sources.list
-            		echo -e "deb-src http://deb.debian.org/debian/ stable main contrib non-free\n" >> /etc/apt/sources.list
-            		echo -e "deb http://deb.debian.org/debian/ stable-updates main contrib non-free" >> /etc/apt/sources.list
-            		echo -e "deb-src http://deb.debian.org/debian/ stable-updates main contrib non-free\n" >> /etc/apt/sources.list
-            		echo -e "deb http://deb.debian.org/debian-security stable/updates main" >> /etc/apt/sources.list
-            		echo -e "deb-src http://deb.debian.org/debian-security stable/updates main\n" >> /etc/apt/sources.list
+            		echo -e "deb http://deb.debian.org/debian/ ${RELEASE_TYPE} main contrib non-free" >> /etc/apt/sources.list
+            		echo -e "deb-src http://deb.debian.org/debian/ ${RELEASE_TYPE} main contrib non-free\n" >> /etc/apt/sources.list
+            		echo -e "deb http://deb.debian.org/debian/ ${RELEASE_TYPE}-updates main contrib non-free" >> /etc/apt/sources.list
+            		echo -e "deb-src http://deb.debian.org/debian/ ${RELEASE_TYPE}-updates main contrib non-free\n" >> /etc/apt/sources.list
+            		echo -e "deb http://deb.debian.org/debian-security ${RELEASE_TYPE}/updates main" >> /etc/apt/sources.list
+            		echo -e "deb-src http://deb.debian.org/debian-security ${RELEASE_TYPE}/updates main\n" >> /etc/apt/sources.list
             		echo -e "deb http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list
             		echo -e "deb-src http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list			
 		else
