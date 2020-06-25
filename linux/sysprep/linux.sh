@@ -507,9 +507,12 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	fi
 
 	if [[ $DISTRO == 'debian' ]]; then
-		echo "LC_ALL=en_US.UTF-8" >> /etc/environment
-		echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
-		echo "LANG=en_US.UTF-8" > /etc/locale.conf
+		write-log "bright_yellow" ">>> Adding locale fix for ${DISTRO} <<<"
+		#echo "LC_ALL=en_US.UTF-8" >> /etc/environment
+		#echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+		#echo "LANG=en_US.UTF-8" > /etc/locale.conf
+		export LC_ALL=en_US.UTF-8
+		export LANG=en_US.UTF-8
 		locale-gen en_US.UTF-8
 		$PKG_INSTALLER install -qqy sudo curl debconf-i18n
 	else
