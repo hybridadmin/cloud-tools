@@ -507,6 +507,10 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	fi
 
 	if [[ $DISTRO == 'debian' ]]; then
+		echo "LC_ALL=en_US.UTF-8" >> /etc/environment
+		echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
+		echo "LANG=en_US.UTF-8" > /etc/locale.conf
+		locale-gen en_US.UTF-8
 		$PKG_INSTALLER install -qqy sudo curl debconf-i18n
 	else
 		$PKG_INSTALLER install -qqy debconf-utils
