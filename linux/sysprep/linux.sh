@@ -425,7 +425,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		fi	
 	fi
 	
-    SELINUX_STATUS=$(sestatus | grep "SELinux status" | awk '{print $3}')
+    	SELINUX_STATUS=$(sestatus | grep "SELinux status" | awk '{print $3}')
 	if [ $RELEASE == '6' ] && [[ $SELINUX_STATUS == "enabled" ]]; then
 		if $PKG_INSTALLER list installed | grep "hyperv-daemons"  >/dev/null 2>&1; then
 			write-log "bright_blue" ">>> Adding Selinux fix for Hyper-V daemons <<<"
@@ -435,16 +435,16 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 			make -f /usr/share/selinux/devel/Makefile hyperv-daemons.pp
 			semodule -s targeted -i hyperv-daemons.pp
 		fi 	
-    fi	
+	fi	
 
 	if [ $RELEASE -ge '7' ]; then
 		#https://noobient.com/2017/09/27/fixing-the-efi-bootloader-on-centos-7/
 		#https://bugs.centos.org/view.php?id=15522
 		if [ $MINOR_VERSION == '6' ]; then
-			write-log "green" ">>> No UEFI boot modifications required. Skipping ... <<<"
+			write-log "green" ">>> Fix for ${DISTRO} running UEFI mode is not required. Skipping ... <<<"
 		else		
 			if [ ! -f /boot/efi/EFI/BOOT/grubx64.efi ]; then
-				write-log "bright_blue" ">>> Applying Generation 2 VM fix for UEFI boot... <<<"
+				write-log "bright_blue" ">>> Applying fix for ${DISTRO} running in UEFI mode <<<"
 				cp /boot/efi/EFI/centos/grub* /boot/efi/EFI/BOOT 
 				cp -r /boot/efi/EFI/centos/fonts /boot/efi/EFI/BOOT 
 			fi
@@ -685,17 +685,17 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	fi
 	
 	## UEFI boot Fix 
-	if [ $DISTRO == 'ubuntu' ] && [ $RELEASE -eq 12 ]; then
-		write-log "bright_yellow" ">>> Gen 2 vm fix for UEFI boot not required. Distro is runnning in BIOS Mode <<<"
-	else
+	if [ $(df -h | grep "efi" | wc -l) -ge 1 ]; then
 		if [ $RELEASE -lt 18 ]; then BOOT_FOLDER="boot" ; else BOOT_FOLDER="BOOT" ; fi
 		if [ ! -f /boot/efi/EFI/${BOOT_FOLDER}/bootx64.efi ]; then
-			write-log "bright_blue" ">>> Applying UEFI Boot fix for Generation 2 Virtual Machines <<<"
+			write-log "bright_blue" ">>> Applying fix for ${DISTRO} running in UEFI mode <<<"
 			cd /boot/efi/EFI && sudo cp -R ${DISTRO}/ ${BOOT_FOLDER}
 			cd ${BOOT_FOLDER} && sudo mv shimx64.efi bootx64.efi
 		else
-			write-log "green" ">>> UEFI Boot fix for Generation 2 Virtual Machines already applied <<<"
+			write-log "green" ">>> Fix for ${DISTRO} running UEFI mode is already applied <<<"
 		fi
+	else
+		write-log "bright_yellow" ">>> ${DISTRO} is runnning in BIOS Mode, Skipping <<<"
 	fi
 
 	if  cat /proc/cmdline | grep "noop" >/dev/null 2>&1 ; then
