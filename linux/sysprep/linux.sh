@@ -213,19 +213,15 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		curl -o "/etc/yum.repos.d/CentOS-Base.repo" https://raw.githubusercontent.com/hybridadmin/centos-azure/master/config/repo/CentOS-${RELEASE}-Base.repo
 	fi
 
-	if [ "/etc/udev/rules.d/70-persistent-net.rules" -ef "/dev/null" ]; then
-		write-log "bright_cyan" ">>> Persistent NET rules fix for /etc/udev/rules.d/70-persistent-net.rules already applied <<<"
-	else
-		write-log "bright_blue" ">>> Applying NET persistent rules fix for /etc/udev/rules.d/70-persistent-net.rules <<<"
-	    rm -f /etc/udev/rules.d/70-persistent-net.rules && ln -s /dev/null /etc/udev/rules.d/70-persistent-net.rules
-	fi
-
-	if [ "/lib/udev/rules.d/75-persistent-net-generator.rules" -ef "/dev/null" ]; then
-	   write-log "bright_cyan" ">>> NET Persistent rules fix for /lib/udev/rules.d/75-persistent-net-generator.rules already applied <<<"
-	else
-        write-log "bright_blue" ">>> Applying NET Persistent rules fix for /dev/null /lib/udev/rules.d/75-persistent-net-generator.rules <<<"
-	    rm -f /lib/udev/rules.d/75-persistent-net-generator.rules && ln -s /dev/null /lib/udev/rules.d/75-persistent-net-generator.rules
-	fi
+	## /etc/udev/rules.d fixes
+    	for x in "/etc/udev/rules.d/70-persistent-net.rules" "/lib/udev/rules.d/75-persistent-net-generator.rules"; do
+        	if [ "$x" -ef "/dev/null" ]; then
+            		write-log "bright_cyan" ">>> $x is already symlinked to /dev/null <<<"
+        	else
+            		write-log "bright_blue" ">>> Symlinking $x to /dev/null <<<"
+            		rm -f $x && ln -s /dev/null $x
+        	fi
+    	done
 
 	## Config Timesource ## 
 	if $PKG_INSTALLER list installed | grep -P "(chrony\..*64)" >/dev/null 2>&1; then
