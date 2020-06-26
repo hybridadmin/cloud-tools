@@ -182,15 +182,6 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		write-log "bright_yellow" ">>> Removing Unrequired packages from system <<<"
 		sudo $PKG_INSTALLER -y -q remove alsa-* ivtv-* iwl*firmware aic94xx-firmware	
 	fi
-	
-	if [[ $EPEL_REPO == "true" ]]; then 
-		if $PKG_INSTALLER list installed | grep -P "epel-release" >/dev/null 2>&1; then
-			write-log "green" ">>> EPEL repo already enabled. <<<"
-		else
-			write-log "bright_blue" ">>> Installing EPEL repo package <<<"
-			sudo $PKG_INSTALLER install -y -q epel-release
-		fi
-	fi 	
 
 	if [[ $REMI_REPO == "true" ]]; then 	
 		if $PKG_INSTALLER list installed | grep -P "remi-release" >/dev/null 2>&1; then
@@ -200,7 +191,8 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 			rpm -Uvh "http://rpms.famillecollet.com/enterprise/remi-release-${RELEASE}.rpm"
 		fi
 	fi 
-		
+	
+	if [[ $EPEL_REPO == "true" ]]; then REQUIRED_PKGS+=" epel-release" ; fi 
 	if [ ! -z "$REQUIRED_PKGS" ]; then 
 		write-log "bright_yellow" ">>> Installing required packages [$REQUIRED_PKGS] <<<"
 		echo $REQUIRED_PKGS | xargs -P1 sudo $PKG_INSTALLER install -y -q
