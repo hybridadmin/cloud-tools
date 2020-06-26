@@ -507,6 +507,8 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		fi
 	fi
 
+	write-log "bright_yellow" ">>> Updating APT cache <<<" && sudo $PKG_INSTALLER update -qqy
+
 	if [[ $DISTRO == 'debian' ]]; then
 		write-log "bright_yellow" ">>> Adding locale fix for ${DISTRO} <<<"
 		echo "LC_ALL=en_US.UTF-8" >> /etc/environment
@@ -518,8 +520,6 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 		$PKG_INSTALLER install -qqy debconf-utils
 	fi
 
-	write-log "bright_yellow" ">>> Updating APT cache <<<"
-	sudo $PKG_INSTALLER update -qqy
 	write-log "bright_yellow" ">>> Updating System <<<"
 	if [ $RELEASE -eq 12 ]; then
 		sudo $PKG_INSTALLER DISTRO-upgrade -qqy 
