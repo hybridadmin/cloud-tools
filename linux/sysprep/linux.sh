@@ -422,10 +422,10 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 			fi
 		else
 			#grubby --update-kernel=ALL --args="video=hyperv_fb:1024x768 elevator=noop numa=off" --remove-args="rhgb quiet"
-			if [ -f /boot/efi/EFI/centos/grub.cfg ]; then
+			if [ -f /boot/efi/EFI/${DISTRO}/grub.cfg ]; then
 				sed -i -e 's/crashkernel=auto/crashkernel=0M-2G:128M,2G-6G:256M,6G-8G:512M,8G-:768M/g' /etc/default/grub
 				sed -i -e 's/rhgb quiet/video=hyperv_fb:1024x768 elevator=noop numa=off zswap.enabled=1 zswap.compressor=lz4 zswap.max_pool_percent=50 intel_pstate=disable/g' /etc/default/grub
-				grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg
+				grub2-mkconfig -o /boot/efi/EFI/${DISTRO}/grub.cfg
 			fi
 		fi
 	fi
