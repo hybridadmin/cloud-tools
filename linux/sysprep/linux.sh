@@ -200,13 +200,10 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
     # https://docs.microsoft.com/en-us/azure/virtual-machines/linux/create-upload-centos	
 	write-log "bright_blue" ">>> DETECTED DISTRO: $DISTRO - RELEASE: ${RELEASE} <<<"
 
-    if [[ $RELEASE == '7' ]]; then 
-        sudo $PKG_INSTALLER groups mark convert
-    fi 
+    if [[ $RELEASE == '7' ]]; then sudo $PKG_INSTALLER groups mark convert ; fi 
 
 	write-log "bright_yellow" ">>> Updating system <<<"
-	$PKG_INSTALLER clean metadata
-	sudo $PKG_INSTALLER makecache
+	$PKG_INSTALLER clean metadata && sudo $PKG_INSTALLER makecache
 	
 	if [ `$PKG_INSTALLER updateinfo list available | wc -l` -gt 0 ]; then 
 		sudo $PKG_INSTALLER -y -q update
