@@ -591,32 +591,28 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	fi
 
 	## Config Timesource 
-    if [ $RELEASE -lt 16 ]; then    
         if dpkg -l | grep -P "(chrony)" >/dev/null 2>&1; then
             write-log "bright_blue" ">>> NTP service installed <<<"			
         else
             write-log "bright_blue" ">>> Installing NTP service <<<"
             systemctl stop ntp && systemctl disable ntp && systemctl mask ntp
-            sudo $PKG_INSTALLER install -qqy chrony				
+            if [ -f /etc/systemd/timesyncd.conf ]; then systemctl stop systemd-timesyncd && systemctl disable systemd-timesyncd && systemctl mask systemd-timesyncd ; fi
+
+            sudo $PKG_INSTALLER install -qqy chrony
+
+	        if [ $DISTRO == 'ubuntu' ]; then 
+	        	TIME_CONF="/etc/chrony.conf"
+	        else
+	        	TIME_CONF="/etc/chrony/chrony.conf"
+	        fi
+
+            if cat "${TIME_CONF}" | grep "ubuntu|debian" >/dev/null 2>&1; then
+                write-log "bright_blue" ">>> Configuring NTP service <<<"				
+                configure_timesource "${TIME_CONF}" "${DISTRO}"
+            else
+                write-log "green" ">>> NTP service already configured <<<"
+            fi				
         fi
-        
-        #TIME_CONF="/etc/chrony.conf"
-	if [ $DISTRO == 'ubuntu' ]; then 
-		TIME_CONF="/etc/chrony.conf"
-	else
-		TIME_CONF="/etc/chrony/chrony.conf"
-	fi
-		
-        if cat "${TIME_CONF}" | grep "ubuntu|debian" >/dev/null 2>&1; then
-            write-log "bright_blue" ">>> Configuring NTP service <<<"				
-            configure_timesource "${TIME_CONF}" "${DISTRO}"
-        else
-            write-log "green" ">>> NTP service already configured <<<"
-        fi
-    else
-        write-log "bright_blue" ">>> Configuring timesyncd service <<<"	
-        sed -i "s/#NTP=.*/NTP=${COUNTRY_CODE}.pool.ntp.org/g" /etc/systemd/timesyncd.conf
-    fi
 
 	if [ $MAINLINE_KERNEL == 'true' ]; then
 		## https://github.com/pimlie/ubuntu-mainline-kernel.sh
