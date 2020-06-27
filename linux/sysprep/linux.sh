@@ -22,6 +22,40 @@ read -p 'IP address or ranges allowed to connect remotely: ' ALLOWED_SOURCES
 
 ## Color logger
 #source <(curl -s https://raw.githubusercontent.com/hybridadmin/color-logger/master/lib/color_logger.sh) 
+## Color logger
+
+### Start Distro Detection ###
+if [[ -r /etc/redhat-release ]]; then
+	DISTRO=$(cat /etc/*release | grep -E "^(Cent|Fedo|Redh)" | awk '{print $1}' | head -n1 | tr '[A-Z]' '[a-z]')
+	RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)	
+	MINOR_VERSION=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -d "." -f 2)
+	MAINLINE_KERNEL="false"
+	EPEL_REPO="true"
+	REMI_REPO="true"
+	OPENLOGIC_REPO="false"
+    if [ $RELEASE -ge 8 ]; then
+        PKG_INSTALLER=$(which dnf)
+        REQUIRED_PKGS="grubby nano gdisk parted wget net-tools pam-devel openssl-devel tar"
+    else
+        PKG_INSTALLER=$(which yum)
+        REQUIRED_PKGS="grubby nano partx gdisk parted wget python-pyasn1 net-tools python python-devel pam-devel openssl-devel policycoreutils-python yum-utils yum-cron"
+    fi
+elif [[ -r /etc/issue ]] || [[ -f /etc/debian_version ]]; then
+	DISTRO=$(lsb_release -is | tr '[A-Z]' '[a-z]')
+	CODE_NAME=$(lsb_release -cs)
+	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)	
+	export DEBIAN_FRONTEND=noninteractive
+	MAINLINE_KERNEL="false"
+	OPENLOGIC_REPO="false"
+	ENHANCED_SESSION_MODE="false"
+    	PKG_INSTALLER=$(which apt)
+	REQUIRED_PKGS="sudo gdisk parted wget aptitude git pwgen"
+else
+   echo "OS NOT DETECTED"
+fi
+### End Distro Detection ###
+
+### Start Functions ###
 function write-log(){
         # Check - https://github.com/mercuriev/bash_colors/blob/master/bash_colors.sh
         declare -A text_colors emphasis
@@ -57,40 +91,7 @@ function write-log(){
 
         echo -e "${line_break}${time_stamp} ${str_color} ${log_msg} ${no_color}"
 }
-## Color logger
 
-### Start Distro Detection ###
-if [[ -r /etc/redhat-release ]]; then
-	DISTRO=$(cat /etc/*release | grep -E "^(Cent|Fedo|Redh)" | awk '{print $1}' | head -n1 | tr '[A-Z]' '[a-z]')
-	RELEASE=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -c-1)	
-	MINOR_VERSION=$(sed 's/Linux//g' < /etc/redhat-release | awk '{print $3}' | tr -d " " | cut -d "." -f 2)
-	MAINLINE_KERNEL="false"
-	EPEL_REPO="true"
-	REMI_REPO="true"
-	OPENLOGIC_REPO="false"
-    if [ $RELEASE -ge 8 ]; then
-        PKG_INSTALLER=$(which dnf)
-        REQUIRED_PKGS="grubby nano gdisk parted wget net-tools pam-devel openssl-devel tar"
-    else
-        PKG_INSTALLER=$(which yum)
-        REQUIRED_PKGS="grubby nano partx gdisk parted wget python-pyasn1 net-tools python python-devel pam-devel openssl-devel policycoreutils-python yum-utils yum-cron"
-    fi
-elif [[ -r /etc/issue ]] || [[ -f /etc/debian_version ]]; then
-	DISTRO=$(lsb_release -is | tr '[A-Z]' '[a-z]')
-	CODE_NAME=$(lsb_release -cs)
-	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)	
-	export DEBIAN_FRONTEND=noninteractive
-	MAINLINE_KERNEL="false"
-	OPENLOGIC_REPO="false"
-	ENHANCED_SESSION_MODE="false"
-    	PKG_INSTALLER=$(which apt)
-	REQUIRED_PKGS="sudo gdisk parted wget aptitude git pwgen"
-else
-   echo "OS NOT DETECTED"
-fi
-### End Distro Detection ###
-
-### Start Functions ###
 function configure_timesource (){
 	NTP_CONFIG=$1
 	DISTRO=$2	
