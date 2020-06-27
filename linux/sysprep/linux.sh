@@ -834,10 +834,9 @@ if [ $BLACKLIST_MODULES == "true" ]; then
 	if [ $DISTRO == "centos" ]; then dracut -f ; else update-initramfs -u ; fi
 fi
 
-write-log "bright_yellow" ">>> Cleaning up tmp/log/seed folders <<<"
+write-log "bright_yellow" ">>> Cleaning up tmp folders and old files <<<"
 for i in "/var/lib/urandom/random-seed" "/tmp/*" "/var/tmp/*"; do rm -rf $i ; done
-find /var/log -type f -name "*.gz" -exec rm -vf \{\} \;
-find /var/log -type f -name "*.1" -exec rm -vf \{\} \;
+find /var/log -type f \( -name "*.gz" -o -name "*.1" \) -exec rm -vf \{\} \;
 find /var/log -type f -exec truncate -s0 \{\} \;
 
 write-log "bright_yellow" ">>> Clearing Console history <<<"
