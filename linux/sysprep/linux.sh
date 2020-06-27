@@ -728,8 +728,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
             echo kexec-tools kexec-tools/use_grub_config boolean true | sudo debconf-set-selections
             sudo $PKG_INSTALLER -qqy install kexec-tools
         fi 
-        #sed -i 's/^LOAD_KEXEC=.*/LOAD_KEXEC=true/' /etc/default/kexec
-        #sed -i 's/^USE_GRUB_CONFIG=.*/USE_GRUB_CONFIG=true/' /etc/default/kexec    
+   
 	fi
     
 	if [ $DISTRO == 'ubuntu' ]; then
@@ -746,7 +745,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 			write-log "green" ">>> kdump-tools Package already installed <<<"
 		else
 			write-log "bright_blue" ">>> Installing Kdump <<<"
-            echo kdump-tools kdump-tools/use_kdump boolean true | sudo debconf-set-selections
+            		echo kdump-tools kdump-tools/use_kdump boolean true | sudo debconf-set-selections
 			sudo $PKG_INSTALLER -qqy install kdump-tools
 		fi	
 	else
@@ -832,17 +831,11 @@ if [ $BLACKLIST_MODULES == "true" ]; then
 	fi	
 	echo "blacklist mdraid" >> ${BLACKLIST_CONF}
 	
-	if [ $DISTRO == "centos" ]; then 
-		dracut -f		
-	else
-		update-initramfs -u
-	fi
+	if [ $DISTRO == "centos" ]; then dracut -f ; else update-initramfs -u ; fi
 fi
 
-write-log "bright_yellow" ">>> Cleaning up TMP/LOG/SEED folders <<<"
-rm -vf /var/lib/urandom/random-seed
-rm -rf /tmp/*
-rm -rf /var/tmp/*
+write-log "bright_yellow" ">>> Cleaning up tmp/log/seed folders <<<"
+for i in "/var/lib/urandom/random-seed" "/tmp/*" "/var/tmp/*"; do rm -rf $i ; done
 find /var/log -type f -name "*.gz" -exec rm -vf \{\} \;
 find /var/log -type f -name "*.1" -exec rm -vf \{\} \;
 find /var/log -type f -exec truncate -s0 \{\} \;
