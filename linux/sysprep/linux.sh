@@ -21,7 +21,42 @@ CLOUD_PART_TOOLS="false"
 read -p 'IP address or ranges allowed to connect remotely: ' ALLOWED_SOURCES
 
 ## Color logger
-source <(curl -s https://raw.githubusercontent.com/hybridadmin/color-logger/master/lib/color_logger.sh) 
+#source <(curl -s https://raw.githubusercontent.com/hybridadmin/color-logger/master/lib/color_logger.sh) 
+function write-log(){
+        # Check - https://github.com/mercuriev/bash_colors/blob/master/bash_colors.sh
+        declare -A text_colors emphasis
+
+        escape="\e[";
+        reset="${escape}0m";
+
+        text_colors[default]=39
+        text_colors[black]=30
+        text_colors[red]=31
+        text_colors[green]=32
+        text_colors[yellow]=33
+        text_colors[blue]=34
+        text_colors[purple]=35
+        text_colors[cyan]=36
+        text_colors[white]=37
+        text_colors[bright_red]=91
+        text_colors[bright_green]=92
+        text_colors[bright_yellow]=93
+        text_colors[bright_blue]=94
+        text_colors[bright_purple]=95
+        text_colors[bright_cyan]=96
+        text_colors[bright_white]=97
+
+        no_color='\e[0m'
+        color=$1
+        log_msg=$2
+        line_break="\n";
+        time_stamp=`date "+%Y-%m-%d %H:%M:%S"`
+
+        color_code="${text_colors[$color]}"
+        str_color="${escape}0;${color_code}m"
+
+        echo -e "${line_break}${time_stamp} ${str_color} ${log_msg} ${no_color}"
+}
 ## Color logger
 
 ### Start Distro Detection ###
