@@ -180,7 +180,7 @@ if [ $(df -h | grep "efi" | wc -l) -ge 1 ]; then
 	    			cp -r /boot/efi/EFI/centos/fonts /boot/efi/EFI/BOOT 
 	    		fi
 	    	fi
-    	else
+    	elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
         	if [ $RELEASE -lt 18 ]; then BOOT_FOLDER="boot" ; else BOOT_FOLDER="BOOT" ; fi
 	    	if [ ! -f /boot/efi/EFI/${BOOT_FOLDER}/bootx64.efi ]; then
 	    		write-log "bright_blue" ">>> Applying fix for ${DISTRO} running in UEFI mode <<<"
@@ -189,6 +189,8 @@ if [ $(df -h | grep "efi" | wc -l) -ge 1 ]; then
 	    	else
 	    		write-log "green" ">>> Fix for ${DISTRO} running UEFI mode is already applied <<<"
 	    	fi
+	else
+		echo "uefi fix not available for ${DISTRO}"
     	fi
 else
 	write-log "bright_yellow" ">>> ${DISTRO} is runnning in BIOS Mode, Skipping <<<"
