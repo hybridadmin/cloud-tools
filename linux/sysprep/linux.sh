@@ -36,7 +36,7 @@ if [[ -r /etc/redhat-release ]]; then
     if [ $RELEASE -ge 8 ]; then
         PKG_INSTALLER=$(which dnf)
         REQUIRED_PKGS="grubby nano gdisk parted wget net-tools pam-devel openssl-devel tar"
-	else
+    else
         PKG_INSTALLER=$(which yum)
         REQUIRED_PKGS="grubby nano partx gdisk parted wget python-pyasn1 net-tools python python-devel pam-devel openssl-devel policycoreutils-python yum-utils yum-cron"
     fi
@@ -46,7 +46,6 @@ elif [[ -r /etc/issue ]] || [[ -f /etc/debian_version ]]; then
 	RELEASE=$(lsb_release -rs | cut -d '.' -f 1)	
 	export DEBIAN_FRONTEND=noninteractive
 	MAINLINE_KERNEL="false"
-	UPDATE_MIRROR_LIST="true"
 	OPENLOGIC_REPO="false"
 	ENHANCED_SESSION_MODE="false"
     	PKG_INSTALLER=$(which apt)
@@ -476,31 +475,25 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	# https://docs.microsoft.com/en-us/azure/virtual-machines/linux/debian-create-upload-vhd	
 	write-log "bright_blue" ">>> DETECTED DISTRO: $DISTRO - RELEASE: ${RELEASE} - CODENAME: ${CODE_NAME} <<<"		
 
-	if [[ $UPDATE_MIRROR_LIST == 'false' ]]; then
-		write-log "green" ">>> Skipping Mirror List Update <<<"
+	write-log "bright_yellow" ">>> Updating mirror list for ${DISTRO} ${CODE_NAME} <<<"
+	cp /etc/apt/sources.list /etc/apt/sources.list.bak.$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
+	if [[ $DISTRO == 'debian' ]]; then 
+		# Debian
+		if [ $CODE_NAME == 'buster' ];then RELEASE_TYPE='stable'; else RELEASE_TYPE='oldstable'; fi
+		if [ $OPENLOGIC_REPO == 'true' ]; then DEB_MIRROR="debian-archive.trafficmanager.net"; else DEB_MIRROR="ftp.is.co.za"; fi
+		truncate -s 0 /etc/apt/sources.list
+            	echo -e "deb http://deb.debian.org/debian/ ${RELEASE_TYPE} main contrib non-free" >> /etc/apt/sources.list
+            	echo -e "deb-src http://deb.debian.org/debian/ ${RELEASE_TYPE} main contrib non-free\n" >> /etc/apt/sources.list
+            	echo -e "deb http://deb.debian.org/debian/ ${RELEASE_TYPE}-updates main contrib non-free" >> /etc/apt/sources.list
+            	echo -e "deb-src http://deb.debian.org/debian/ ${RELEASE_TYPE}-updates main contrib non-free\n" >> /etc/apt/sources.list
+            	echo -e "deb http://deb.debian.org/debian-security ${RELEASE_TYPE}/updates main" >> /etc/apt/sources.list
+            	echo -e "deb-src http://deb.debian.org/debian-security ${RELEASE_TYPE}/updates main\n" >> /etc/apt/sources.list
+            	echo -e "deb http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list
+            	echo -e "deb-src http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list			
 	else
-		write-log "bright_yellow" ">>> Updating Mirror List for ${DISTRO} ${CODE_NAME} <<<"
-		cp /etc/apt/sources.list /etc/apt/sources.list.bak.$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
-		
-		if [[ $DISTRO == 'debian' ]]; then 
-			# Debian
-			if [ $CODE_NAME == 'buster' ];then RELEASE_TYPE='stable'; else RELEASE_TYPE='oldstable'; fi
-			if [ $OPENLOGIC_REPO == 'true' ]; then DEB_MIRROR="debian-archive.trafficmanager.net"; else DEB_MIRROR="ftp.is.co.za"; fi
-			truncate -s 0 /etc/apt/sources.list
-            		echo -e "deb http://deb.debian.org/debian/ ${RELEASE_TYPE} main contrib non-free" >> /etc/apt/sources.list
-            		echo -e "deb-src http://deb.debian.org/debian/ ${RELEASE_TYPE} main contrib non-free\n" >> /etc/apt/sources.list
-            		echo -e "deb http://deb.debian.org/debian/ ${RELEASE_TYPE}-updates main contrib non-free" >> /etc/apt/sources.list
-            		echo -e "deb-src http://deb.debian.org/debian/ ${RELEASE_TYPE}-updates main contrib non-free\n" >> /etc/apt/sources.list
-            		echo -e "deb http://deb.debian.org/debian-security ${RELEASE_TYPE}/updates main" >> /etc/apt/sources.list
-            		echo -e "deb-src http://deb.debian.org/debian-security ${RELEASE_TYPE}/updates main\n" >> /etc/apt/sources.list
-            		echo -e "deb http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list
-            		echo -e "deb-src http://ftp.debian.org/debian ${CODE_NAME}-backports main" >> /etc/apt/sources.list			
-		else
-			write-log "green" ">>> Skipping Mirror List Update for ${DISTRO} <<<"
-			# Ubuntu 
-			#MIRROR=$(curl -s http://mirrors.ubuntu.com/mirrors.txt | head -n1 | rev | cut -c 2- | rev)
-			#sed -i -e "s#http://archive.ubuntu.com/ubuntu/#${MIRROR}\/#g" /etc/apt/sources.list
-		fi
+		write-log "green" ">>> Skipping Mirror List Update for ${DISTRO} <<<" 
+		#MIRROR=$(curl -s http://mirrors.ubuntu.com/mirrors.txt | head -n1 | rev | cut -c 2- | rev)
+		#sed -i -e "s#http://archive.ubuntu.com/ubuntu/#${MIRROR}\/#g" /etc/apt/sources.list
 	fi
 
 	write-log "bright_yellow" ">>> Updating APT cache <<<" && sudo $PKG_INSTALLER update -qqy
