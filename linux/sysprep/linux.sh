@@ -205,9 +205,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 	write-log "bright_yellow" ">>> Updating system <<<"
 	$PKG_INSTALLER clean metadata && sudo $PKG_INSTALLER makecache
 	
-	if [ `$PKG_INSTALLER updateinfo list available | wc -l` -gt 0 ]; then 
-		sudo $PKG_INSTALLER -y -q update
-	fi
+	if [ `$PKG_INSTALLER updateinfo list available | wc -l` -gt 0 ]; then sudo $PKG_INSTALLER -y -q update ; fi
 	
 	if $PKG_INSTALLER list installed | grep -P "(alsa-*|ivtv-*|iwl*firmware|aic94xx-firmware)" >/dev/null 2>&1; then
 		write-log "green" ">>> No Unrequired packages to remove from system <<<"
