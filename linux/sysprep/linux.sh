@@ -88,7 +88,6 @@ function write-log(){
 
         color_code="${text_colors[$color]}"
         str_color="${escape}0;${color_code}m"
-
         echo -e "${line_break}${time_stamp} ${str_color} ${log_msg} ${no_color}"
 }
 
