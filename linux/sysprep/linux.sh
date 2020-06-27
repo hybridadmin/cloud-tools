@@ -724,8 +724,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 			else 
 				echo "GRUB_RECORDFAIL_TIMEOUT=5" >> /etc/default/grub
 			fi
-		fi
-		
+		fi		
 		GRUB_UPDATE="true"
 	fi
 
@@ -794,8 +793,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
 	fi
 
 	if [[ $GRUB_UPDATE == "true" ]]; then
-		write-log "bright_yellow" ">>> Updating Grub config <<<"
-		update-grub
+		write-log "bright_yellow" ">>> Updating Grub config <<<" && update-grub
 	fi
 	
 	if [[ $(cat /boot/config-* | grep ZSWAP | tail -n1 | rev | cut -c1) == "y" ]] && [[ $UPDATE_KERNEL_MODULES == "true" ]]; then 
