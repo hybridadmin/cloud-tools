@@ -623,8 +623,7 @@ elif [ $DISTRO == 'ubuntu' ] || [ $DISTRO == 'debian' ]; then
             systemctl stop ntp && systemctl disable ntp && systemctl mask ntp
             if [ -f /etc/systemd/timesyncd.conf ]; then systemctl stop systemd-timesyncd && systemctl disable systemd-timesyncd && systemctl mask systemd-timesyncd ; fi
 
-            sudo $PKG_INSTALLER install -qqy chrony
-
+            	sudo $PKG_INSTALLER install -qqy chrony
 	        if [ $DISTRO == 'ubuntu' ]; then 
 	        	TIME_CONF="/etc/chrony.conf"
 	        else
