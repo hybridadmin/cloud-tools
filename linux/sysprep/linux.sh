@@ -397,7 +397,7 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		write-log "green" ">>> Installed Kernel limit already set <<<"
 	else
 		write-log "bright_blue" ">>> Applying Installed Kernel limit <<<"
-		#crudini --set --verbose /etc/yum.conf main installonly_limit 2
+		#crudini --set --verbose ${PKG_INSTALLER_CONF} main installonly_limit 2
 		sed -i 's/installonly_limit.*/installonly_limit=2/' $PKG_INSTALLER_CONF
 	fi
 	
