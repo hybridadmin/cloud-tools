@@ -1,13 +1,7 @@
 #!/bin/bash
 
-# Disk partitions: 
-# 512MB = /boot | 256MB = /boot/efi (EFI ESP) | Rest = /
-# VG = ubuntu-vg / LV = root
-# New-VHD -Path "E:\Hyper-V\TEST992\VPS_Ubuntu_16.04_x64_Gen2.vhdx" -SizeBytes 10GB -Dynamic -BlockSizeBytes 1MB
 # Debian install packages: sudo curl
 
-## Fix for Centos 7/8 - [[ $RELEASE =~ ^[7-8]{1}$ ]] 
-## if [[ -n "$var" && -e "$var" ]] ; then
 CURRENT_SCRIPT="$0"
 
 ##variables
@@ -17,6 +11,7 @@ HOLD_KERNEL_UPDATES="false"
 PREP_FOR_AZURE="false"
 BLACKLIST_MODULES="false"
 CLOUD_PART_TOOLS="false"
+##variables
 
 read -p 'IP address or ranges allowed to connect remotely: ' ALLOWED_SOURCES
 
