@@ -372,26 +372,27 @@ if [ $DISTRO == 'centos' ] || [ $DISTRO == 'redhat' ]; then
 		iptables-save > /etc/sysconfig/iptables
 	fi
 
+	if [ $RELEASE -le '7' ]; then PKG_INSTALLER_CONF="/etc/yum.conf" ; else PKG_INSTALLER_CONF="/etc/dnf/dnf.conf"; fi
+
 	if [ $HOLD_KERNEL_UPDATES == 'true' ]; then	
-		if  cat /etc/yum.conf  | grep exclude >/dev/null 2>&1 ; then
+		if  cat ${PKG_INSTALLER_CONF}  | grep exclude >/dev/null 2>&1 ; then
 			write-log "green" ">>> Kernel Updates already disabled <<<"
 		else 
 			write-log "bright_blue" ">>> Disabling Kernel updates <<<"
-			echo "exclude=kernel*" >> /etc/yum.conf
+			echo "exclude=kernel*" >> ${PKG_INSTALLER_CONF}
 		fi
 	fi 	
 
-    if [ $RELEASE -le '7' ]; then
-        if [[ `cat /etc/yum/yum-cron.conf | grep 'apply_updates' | cut -d '=' -f 2` == "yes" ]]; then
-            write-log "green" ">>> yum cron already configured <<<"
-        else
-            write-log "bright_blue" ">>> configuring yum cron <<<"
-            sed -i 's/apply_updates.*/apply_updates=no/' /etc/yum/yum-cron.conf
-            sudo systemctl enable yum-cron.service && sudo systemctl start yum-cron.service
-        fi
-    fi
-    
-    if [ $RELEASE -le '7' ]; then PKG_INSTALLER_CONF="/etc/yum.conf" ; else PKG_INSTALLER_CONF="/etc/dnf/dnf.conf"; fi
+    	if [ $RELEASE -le '7' ]; then
+        	if [[ `cat /etc/yum/yum-cron.conf | grep 'apply_updates' | cut -d '=' -f 2` == "yes" ]]; then
+            		write-log "green" ">>> yum cron already configured <<<"
+        	else
+            		write-log "bright_blue" ">>> configuring yum cron <<<"
+            		sed -i 's/apply_updates.*/apply_updates=no/' /etc/yum/yum-cron.conf
+            		sudo systemctl enable yum-cron.service && sudo systemctl start yum-cron.service
+        	fi
+    	fi
+        
 	if [[ `cat $PKG_INSTALLER_CONF | grep 'installonly_limit' | cut -d '=' -f 2` -eq 2 ]]; then
 		write-log "green" ">>> Installed Kernel limit already set <<<"
 	else
