@@ -27,13 +27,13 @@ if [[ -r /etc/redhat-release ]]; then
 	EPEL_REPO="true"
 	REMI_REPO="true"
 	OPENLOGIC_REPO="false"
-    if [ $RELEASE -ge 8 ]; then
-        PKG_INSTALLER=$(which dnf)
-        REQUIRED_PKGS="grubby nano gdisk parted wget net-tools pam-devel openssl-devel tar"
-    else
-        PKG_INSTALLER=$(which yum)
-        REQUIRED_PKGS="grubby nano partx gdisk parted wget python-pyasn1 net-tools python python-devel pam-devel openssl-devel policycoreutils-python yum-utils yum-cron"
-    fi
+    	if [ $RELEASE -ge 8 ]; then
+        	PKG_INSTALLER=$(which dnf)
+        	REQUIRED_PKGS="grubby nano gdisk parted wget net-tools pam-devel openssl-devel tar"
+    	else
+        	PKG_INSTALLER=$(which yum)
+        	REQUIRED_PKGS="grubby nano partx gdisk parted wget python-pyasn1 net-tools python python-devel pam-devel openssl-devel policycoreutils-python yum-utils yum-cron"
+    	fi
 elif [[ -r /etc/issue ]] || [[ -f /etc/debian_version ]]; then
 	DISTRO=$(lsb_release -is | tr '[A-Z]' '[a-z]')
 	CODE_NAME=$(lsb_release -cs)
