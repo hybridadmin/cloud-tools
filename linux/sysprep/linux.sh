@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Debian install packages: sudo curl
-
+# Debian pre-requisite packages: sudo curl
 CURRENT_SCRIPT="$0"
 
 ##variables
